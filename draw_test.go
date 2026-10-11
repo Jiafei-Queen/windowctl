@@ -3,6 +3,9 @@ package windowctl
 import (
 	"errors"
 	"image"
+
+	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
 	"os"
 	"path/filepath"
 	"strings"
@@ -227,4 +230,18 @@ func (o *overlayRecorder) ShowOverlay(_ Rect, _ *image.RGBA, done func() bool) e
 		time.Sleep(5 * time.Millisecond)
 	}
 	return nil
+}
+
+// Runes the sign font lacks fall back to the embedded font instead of
+// rendering as missing-glyph boxes.
+func TestSignTextFallsBackForMissingGlyphs(t *testing.T) {
+	primary, _ := opentype.Parse(goregular.TTF)
+	st := layoutText(primary, "a\U0001F600b", 40, 2000)
+	runs := st.runs("a\U0001F600b")
+	if len(runs) != 3 || runs[1].face != st.fallback || runs[0].face != st.face {
+		t.Fatalf("runs = %d, want primary/fallback/primary split", len(runs))
+	}
+	if r := st.runs("plain text"); len(r) != 1 {
+		t.Errorf("covered text should be one run, got %d", len(r))
+	}
 }

@@ -25,6 +25,7 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/sfnt"
 	"golang.org/x/image/math/fixed"
 	"golang.org/x/image/vector"
 )
@@ -252,17 +253,28 @@ func parseFontFile(path string) *opentype.Font {
 
 // signText is the sign's sentence laid out at one font size, in pixels.
 type signText struct {
-	face   font.Face
-	lines  []string
-	widths []float64
-	lineH  float64
-	ascent float64
-	w, h   float64
+	face     font.Face
+	fallback font.Face      // embedded Go Bold, for runes the sign font lacks
+	font     *opentype.Font // the sign font, for glyph-coverage checks
+	lines    []string
+	widths   []float64
+	lineH    float64
+	ascent   float64
+	w, h     float64
 }
 
 func layoutText(fnt *opentype.Font, text string, sizePx, maxWPx float64) signText {
-	face, _ := opentype.NewFace(fnt, &opentype.FaceOptions{Size: sizePx, DPI: 72, Hinting: font.HintingNone})
-	measure := func(s string) float64 { return float64(font.MeasureString(face, s)) / 64 }
+	opts := &opentype.FaceOptions{Size: sizePx, DPI: 72, Hinting: font.HintingNone}
+	face, _ := opentype.NewFace(fnt, opts)
+	fb, _ := opentype.NewFace(fallbackFont(), opts)
+	st0 := signText{face: face, fallback: fb, font: fnt}
+	measure := func(s string) float64 {
+		w := 0.0
+		for _, r := range st0.runs(s) {
+			w += float64(font.MeasureString(r.face, r.text)) / 64
+		}
+		return w
+	}
 	var lines []string
 	for _, para := range strings.Split(text, "\n") {
 		words := strings.Fields(para)
@@ -282,7 +294,8 @@ func layoutText(fnt *opentype.Font, text string, sizePx, maxWPx float64) signTex
 		lines = append(lines, cur)
 	}
 	met := face.Metrics()
-	st := signText{face: face, lines: lines, lineH: float64(met.Height) / 64, ascent: float64(met.Ascent) / 64}
+	st := st0
+	st.lines, st.lineH, st.ascent = lines, float64(met.Height)/64, float64(met.Ascent)/64
 	glyphH := float64(met.Ascent+met.Descent) / 64
 	for _, l := range lines {
 		wd := measure(l)
@@ -293,6 +306,41 @@ func layoutText(fnt *opentype.Font, text string, sizePx, maxWPx float64) signTex
 	// needs its glyphs (no trailing line gap), so text centres optically.
 	st.h = st.lineH*float64(len(lines)-1) + glyphH
 	return st
+}
+
+type textRun struct {
+	text string
+	face font.Face
+}
+
+// runs splits s into maximal runs drawable by one face: the sign font
+// where it has the glyph, the fallback where it does not (e.g. '·' or
+// '→' in Arial Rounded Bold), so a sign never shows a missing-glyph box.
+func (st signText) runs(s string) []textRun {
+	var out []textRun
+	var buf sfnt.Buffer
+	for _, r := range s {
+		f := st.face
+		if idx, err := st.font.GlyphIndex(&buf, r); (err != nil || idx == 0) && r != ' ' && st.fallback != nil {
+			f = st.fallback
+		}
+		if n := len(out); n > 0 && out[n-1].face == f {
+			out[n-1].text += string(r)
+		} else {
+			out = append(out, textRun{string(r), f})
+		}
+	}
+	return out
+}
+
+var (
+	fallbackOnce sync.Once
+	fallbackFnt  *opentype.Font
+)
+
+func fallbackFont() *opentype.Font {
+	fallbackOnce.Do(func() { fallbackFnt, _ = opentype.Parse(gobold.TTF) })
+	return fallbackFnt
 }
 
 // fitText shrinks the font until the text fits in drawMaxLines lines,
@@ -315,7 +363,10 @@ func (cv *canvas) text(st signText, box frect, c Color) {
 		x := box.X*cv.px + (box.W*cv.px-st.widths[i])/2
 		y := top + float64(i)*st.lineH + st.ascent
 		d.Dot = fixed.Point26_6{X: fixed.Int26_6(x * 64), Y: fixed.Int26_6(y * 64)}
-		d.DrawString(l)
+		for _, r := range st.runs(l) {
+			d.Face = r.face
+			d.DrawString(r.text)
+		}
 	}
 }
 
