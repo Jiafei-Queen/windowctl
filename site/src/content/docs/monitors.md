@@ -5,9 +5,10 @@ description: 1-indexed displays, which one is active, and which window has focus
 
 ```sh
 $ windowctl monitors list
-ID  NAME              BOUNDS                PRIMARY  ACTIVE
-1   Built-in Display  0,0 1920x1200         true     false
-2   DELL U2723QE      1920,0 3840x2160      false    true
+ID  X      Y  WIDTH  HEIGHT  PRIMARY  ACTIVE  FOCUSED
+1   -1728  0  1728   1117    false    false   false
+2   0      0  1920   1080    true     false   false
+3   1920   0  1920   1080    false    true    true
 ```
 
 - **IDs are 1-indexed, ordered by ascending (X, Y).** The leftmost display is
@@ -15,6 +16,7 @@ ID  NAME              BOUNDS                PRIMARY  ACTIVE
   layout keeps meaning what it meant.
 - **`PRIMARY`** is the OS's primary display.
 - **`ACTIVE`** is the display the cursor is on right now.
+- **`FOCUSED`** is the display holding the focused (frontmost) window.
 
 `--monitor 0` is invalid: `0` is the off-screen sentinel used in window output,
 not a display.

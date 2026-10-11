@@ -12,15 +12,15 @@ export default defineConfig({
 		starlight({
 			title: 'windowctl',
 			description:
-				'Move, resize, focus and tile windows across every monitor — one static binary on macOS, Windows and Linux. Plus a device layer that types, clicks, screenshots, captures the screen, and ships its own virtual audio device.',
+				'Move, resize, focus and tile windows across every monitor — one static binary on macOS, Windows and Linux. Plus screenshots, mouse & keyboard, on-screen arrows (draw), find-by-text, and browser remote control.',
 			tableOfContents: false,
 			plugins: [
 				starlightLlmsTxt({
 					projectName: 'windowctl',
 					description:
-						'A cross-platform CLI and Go library for window and monitor management, plus a loopback device-streaming layer for auto-testing voice/video apps.',
+						'A cross-platform CLI and Go library for window and monitor management, plus desktop automation: screenshots, input, on-screen arrows, find-by-text and browser remote control.',
 					details:
-						'windowctl lists and moves windows across monitors by zone, split, or coordinates; reports which monitor is active and which window is focused; applies whole layouts in one batch call; and exposes a device layer (keyboard/mouse injection, screenshots, ScreenCaptureKit screen capture, audio device control, speaker loopback, and its own CoreAudio virtual device) over a loopback WebSocket. One static binary per platform, distributed via npm.',
+						'windowctl lists and moves windows across monitors by zone, split, or coordinates; reports which monitor is active and which window is focused; applies whole layouts in one batch call; plus point-normalized screenshots, mouse/keyboard injection with a focus guard, launch/wait, a bigarrow-style draw overlay, find-by-text via accessibility tree then OCR, and a browser screen-share remote. One static binary per platform, distributed via npm.',
 				}),
 			],
 			customCss: [
@@ -50,11 +50,14 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Device layer',
+					label: 'Desktop automation',
 					items: [
-						{ label: 'What it is', slug: 'devices' },
+						{ label: 'Overview', slug: 'devices' },
+						{ label: 'Screenshots', slug: 'capture' },
 						{ label: 'Keyboard & mouse', slug: 'input' },
-						{ label: 'Screen & audio', slug: 'capture' },
+						{ label: 'Draw: point at things', slug: 'draw' },
+						{ label: 'Find on screen', slug: 'find' },
+						{ label: 'Remote control', slug: 'remote' },
 					],
 				},
 				{

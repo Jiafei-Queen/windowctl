@@ -4,7 +4,7 @@ description: Drive windowctl in plain English — the skill ships inside the bin
 ---
 
 ```sh
-windowctl install skills
+windowctl install --skills
 ```
 
 That writes the `window-ctl-skill` agent skill into `~/.claude/skills/`, and
@@ -32,10 +32,11 @@ never reaches into Quartz, Win32 or X11 itself.
 ## Managing it
 
 ```sh
-windowctl install skills --dir ~/.claude/skills   # one specific root
-windowctl install skills --force                  # replace an existing install
-windowctl uninstall skills
+windowctl install --skills --agents   # also ~/.agents/skills, even without codex on PATH
+windowctl uninstall --skills [--agents]
 ```
+
+`CLAUDE_SKILLS_DIR` / `AGENTS_SKILLS_DIR` override the target roots.
 
 Two guards, because this writes and deletes under your home directory:
 

@@ -315,3 +315,6 @@
 	color: var(--sl-color-gray-2);
 	max-width: 62ch;
 }
+
+.wc-demo { width: 100%; border-radius: 10px; margin-top: 1.5rem; border: 1px solid var(--sl-color-gray-5); background: #000; }
+.wc-caption { font-size: var(--sl-text-sm); color: var(--sl-color-gray-3); margin-top: 0.4rem; }
