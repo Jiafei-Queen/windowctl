@@ -58,7 +58,7 @@ targets (exactly one):
 	title := fs.String("title", "", "target the window matched by title (case-insensitive substring)")
 	app := fs.String("app", "", "target the window matched by app name (case-insensitive)")
 	mouse := fs.Bool("mouse", false, "target the cursor position")
-	find := fs.String("find", "", "with --title/--app: point at this text in the window (button, menu, link, label; OCR fallback). Default style: ring")
+	find := fs.String("find", "", "with --title/--app: point at this text in the window (button, menu, link, label; OCR fallback); boxed + arrow, --style ring to circle it")
 	findSource := fs.String("source", "", "for --find: auto (accessibility, then OCR) | accessibility | ocr")
 	findRole := fs.String("role", "", "for --find: button | menuitem | link | tab | checkbox | radio | textfield | text | image")
 	findExact := fs.Bool("exact", false, "for --find: the whole label must equal the text")
@@ -147,7 +147,38 @@ targets (exactly one):
 	opts.Duration = time.Duration(secs * float64(time.Second))
 	opts.Avoid = liveDrawingSigns()
 
+	// Resolve --find exactly once, here, and draw at that rect from then
+	// on: a second search (the detached child, or the place-then-show
+	// pass below) can see a changed window and land somewhere else.
+	var found *windowctl.FoundText
+	if opts.Find != "" {
+		if opts.Match == nil {
+			fail(2, errors.New("--find needs the window to search: add --title or --app"))
+		}
+		hits, err := windowctl.FindText(windowctl.FindOptions{
+			Match: *opts.Match, Text: opts.Find, Source: opts.FindSource, Role: opts.FindRole, Exact: opts.FindExact,
+		})
+		if err != nil {
+			fail(3, err)
+		}
+		i := max(opts.FindNth, 1) - 1
+		if i >= len(hits) {
+			fail(3, fmt.Errorf("--nth %d but only %d match(es) for %q", opts.FindNth, len(hits), opts.Find))
+		}
+		found = &hits[i]
+		r := found.Bounds
+		opts.Region, opts.Match, opts.Monitor, opts.Find = &r, nil, nil, ""
+		args = append(stripFlags(args, map[string]bool{"find": true, "title": true, "app": true, "source": true, "role": true, "nth": true, "monitor": true, "style": true}, map[string]bool{"exact": true}),
+			"--rect", fmt.Sprintf("%d,%d,%d,%d", r.X, r.Y, r.W, r.H))
+		if opts.Style != "" {
+			args = append(args, "--style", string(opts.Style))
+		}
+	}
+
 	emit := func(res windowctl.DrawResult) {
+		if found != nil {
+			res.Found = found
+		}
 		if *asJSON {
 			_ = json.NewEncoder(os.Stdout).Encode(res)
 		}
@@ -374,4 +405,30 @@ func drawConfigCmd(args []string) {
 	}
 	b, _ := json.MarshalIndent(cfg, "", "  ")
 	fmt.Println(string(b))
+}
+
+// stripFlags removes the named flags (and, for valued flags given as
+// "--name value", their value) from a raw argument list.
+func stripFlags(args []string, valued, boolean map[string]bool) []string {
+	var out []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		name := strings.TrimLeft(a, "-")
+		if !strings.HasPrefix(a, "-") {
+			out = append(out, a)
+			continue
+		}
+		if eq := strings.IndexByte(name, '='); eq >= 0 {
+			if valued[name[:eq]] || boolean[name[:eq]] {
+				continue
+			}
+		} else if valued[name] {
+			i++ // skip its value
+			continue
+		} else if boolean[name] {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }

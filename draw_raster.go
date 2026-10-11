@@ -172,11 +172,11 @@ func roundRect(r frect, rad float64) []vec {
 	return out
 }
 
-func ellipse(c vec, r float64) []vec {
+func ellipse(c vec, rx, ry float64) []vec {
 	out := make([]vec, 0, 97)
 	for i := 0; i <= 96; i++ {
 		a := float64(i) / 96 * 2 * math.Pi
-		out = append(out, c.add(vec{r * math.Cos(a), r * math.Sin(a)}))
+		out = append(out, c.add(vec{rx * math.Cos(a), ry * math.Sin(a)}))
 	}
 	return out
 }
@@ -377,7 +377,7 @@ func renderLayout(cv *canvas, lay drawLayout, st signText, look drawLook) {
 	case markBox:
 		markPath = append(roundRect(lay.mark.rect, 12*ui), roundRect(lay.mark.rect, 12*ui)[0])
 	case markRing:
-		markPath = ellipse(lay.mark.center, lay.mark.radius)
+		markPath = ellipse(lay.mark.center, lay.mark.rx, lay.mark.ry)
 	}
 	if markPath != nil {
 		for _, b := range borders {

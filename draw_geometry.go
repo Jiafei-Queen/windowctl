@@ -95,6 +95,10 @@ const (
 	placeShortcutCost   = 400.0
 	placeOtherGap       = 12.0
 	placeOverlapPenalty = 0.05
+	// placeLengthCost per unit of sign-to-target distance: with room on
+	// several sides, the closest sign (shortest arrow, least screen
+	// covered) wins; diagonals with a wide sign are otherwise far away.
+	placeLengthCost = 0.6
 )
 
 var placeReachScales = []float64{1.0, 0.75, 1.4, 0.55, 1.9, 2.5}
@@ -111,6 +115,13 @@ func signRectFor(w, h float64, keepOut frect, dir DrawFrom, reach float64) frect
 	d := support(keepOut.W, keepOut.H, u) + reach + support(w, h, u)
 	c := keepOut.center().add(u.mul(d))
 	return frect{c.X - w/2, c.Y - h/2, w, h}
+}
+
+// rectGap is the distance between two rects (0 when they touch).
+func rectGap(a, b frect) float64 {
+	dx := math.Max(0, math.Max(a.minX()-b.maxX(), b.minX()-a.maxX()))
+	dy := math.Max(0, math.Max(a.minY()-b.maxY(), b.minY()-a.maxY()))
+	return math.Hypot(dx, dy)
 }
 
 func placeClearance(r, a frect) float64 {
@@ -149,7 +160,8 @@ func placeSign(w, h float64, marked, area frect, reach float64, forced DrawFrom,
 				if _, hit := r.intersect(keepOut); !usable.contains(r) || hit || (!tolerate && ov > 0) {
 					continue
 				}
-				score := placeClearance(r, usable) - math.Abs(s-1)*placeShortcutCost - float64(rank)*4 - ov*placeOverlapPenalty
+				score := placeClearance(r, usable) - math.Abs(s-1)*placeShortcutCost - float64(rank)*4 - ov*placeOverlapPenalty -
+					rectGap(r, keepOut)*placeLengthCost
 				if score > bestScore {
 					bestScore, br, bd = score, r, d
 				}
@@ -471,8 +483,8 @@ const (
 type drawMark struct {
 	kind   markKind
 	rect   frect // box
-	center vec   // ring
-	radius float64
+	center vec // ring: an ellipse, a circle for point targets
+	rx, ry float64
 }
 
 func (m drawMark) area() (frect, bool) {
@@ -480,7 +492,7 @@ func (m drawMark) area() (frect, bool) {
 	case markBox:
 		return m.rect, true
 	case markRing:
-		return frect{m.center.X - m.radius, m.center.Y - m.radius, m.radius * 2, m.radius * 2}, true
+		return frect{m.center.X - m.rx, m.center.Y - m.ry, m.rx * 2, m.ry * 2}, true
 	}
 	return frect{}, false
 }
@@ -506,14 +518,18 @@ func planLayout(target frect, isPoint bool, area, bounds frect, signW, signH flo
 		anchor = vec{target.X, target.Y}
 	}
 	var mk drawMark
-	pad := 8 * ui
+	// Box padding hugs small elements (a toggle, a word) and gives big
+	// ones (a window) bigarrow's 8pt.
+	pad := math.Max(3, math.Min(8, math.Min(target.W, target.H)*0.25)) * ui
 	switch {
+	case o.Style == DrawRing && isPoint:
+		mk = drawMark{kind: markRing, center: anchor, rx: 36 * ui, ry: 36 * ui}
 	case o.Style == DrawRing:
-		r := 36 * ui
-		if !isPoint {
-			r = math.Max(r, math.Hypot(target.W, target.H)/2+12*ui)
-		}
-		mk = drawMark{kind: markRing, center: anchor, radius: r}
+		// Hug the rect like a pen-drawn oval: the smallest ellipse with the
+		// rect's aspect that contains it (semi-axes √2 × half sides), plus
+		// a margin so the line clears the glyphs.
+		m := 10 * ui
+		mk = drawMark{kind: markRing, center: anchor, rx: target.W/2*math.Sqrt2 + m, ry: target.H/2*math.Sqrt2 + m}
 	case !isPoint:
 		mk = drawMark{kind: markBox, rect: target.inset(-pad, -pad)}
 	case o.Style == DrawBox:
@@ -539,7 +555,10 @@ func planLayout(target frect, isPoint bool, area, bounds frect, signW, signH flo
 	tip := anchor
 	switch mk.kind {
 	case markRing:
-		tip = mk.center.add(sign.center().sub(mk.center).norm().mul(mk.radius + gap))
+		// The ellipse point in the sign's direction, then the gap.
+		d := sign.center().sub(mk.center).norm()
+		k := 1 / math.Hypot(d.X/mk.rx, d.Y/mk.ry)
+		tip = mk.center.add(d.mul(k + gap))
 	case markBox:
 		r := mk.rect
 		mids := [][2]vec{

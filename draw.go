@@ -35,9 +35,10 @@ type DrawOptions struct {
 
 	// Find, with Match, points at text inside that window instead of the
 	// whole window: a button, menu item, link or label from the
-	// accessibility tree, else OCR'd screen text (see FindText). The
-	// style defaults to ring (circle + arrow). FindNth picks the n-th
-	// best match (1-based; 0 = best).
+	// accessibility tree, else OCR'd screen text (see FindText). FindNth
+	// picks the n-th
+	// best match (1-based; 0 = best). The found element is boxed tightly,
+	// as bigarrow does; Style ring circles it instead.
 	Find       string
 	FindSource FindSource
 	FindRole   string
@@ -207,9 +208,6 @@ func resolveDrawTarget(a Adapter, o DrawOptions) (frect, bool, Monitor, error) {
 }
 
 func renderDrawWith(a Adapter, opts DrawOptions) (*image.RGBA, DrawResult, error) {
-	if opts.Find != "" && opts.Style == "" {
-		opts.Style = DrawRing
-	}
 	if !opts.NoConfig {
 		cfg, err := LoadDrawConfig()
 		if err != nil {
