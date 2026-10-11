@@ -483,7 +483,7 @@ const (
 type drawMark struct {
 	kind   markKind
 	rect   frect // box
-	center vec // ring: an ellipse, a circle for point targets
+	center vec   // ring: an ellipse, a circle for point targets
 	rx, ry float64
 }
 

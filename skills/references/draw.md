@@ -28,7 +28,8 @@ windowctl draw --app Notepad --find "File" --role menuitem --style ring --text "
 
 `--find` reads the accessibility tree (buttons, menus, links, labels), then
 OCR for anything drawn as pixels. Exit 3 = not found; the error lists the
-closest labels it saw — retry with one of them.
+closest labels it saw — retry with one of them. Full detail (sources,
+ranking, roles, menus): `references/find.md`.
 
 Coordinates are the same as `screenshot` / `mouse`: read a pixel off a
 screenshot (plus the capture origin) and draw at it.
@@ -65,5 +66,5 @@ fonts with `windowctl draw fonts`. Flags override it.
 - Never draw over a permission or security prompt to steer the human
   toward a choice they did not ask for; explain the consequence instead.
 - Clean up: `windowctl draw stop` once the step is done.
-- Exit codes: 0 ok, 2 bad input, 1 failure (no window match, no monitor).
+- Exit codes: 0 ok, 2 bad input, 3 `--find` text not found, 1 failure (no window match, no monitor).
   Linux: only `--preview` works (overlay not implemented yet).

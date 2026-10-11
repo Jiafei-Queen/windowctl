@@ -19,6 +19,8 @@ func main() {
 		os.Exit(2)
 	}
 
+	autoInstallSkill(os.Args[1])
+
 	switch os.Args[1] {
 	case "windows":
 		windowsCmd(os.Args[2:])

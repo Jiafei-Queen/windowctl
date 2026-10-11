@@ -135,6 +135,9 @@ func installBundledSkillAt(dst string) (string, error) {
 	if err := copyBundledSkillTree(tmp); err != nil {
 		return "", err
 	}
+	if err := os.WriteFile(filepath.Join(tmp, skillStampFile), []byte(bundledSkillHash()+"\n"), 0o644); err != nil {
+		return "", fmt.Errorf("write %s: %w", skillStampFile, err)
+	}
 	if err := os.RemoveAll(dst); err != nil {
 		return "", fmt.Errorf("remove existing install %s: %w", dst, err)
 	}
