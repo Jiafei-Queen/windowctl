@@ -63,3 +63,15 @@ type Target struct {
 	Monitor *int
 	Bounds  Rect
 }
+
+// TextItem is one piece of text found in a window, in global
+// coordinates: an accessibility element's label (Source
+// "accessibility", Role set) or an OCR line (Source "ocr", Words set
+// with each word's own box so a substring can be boxed exactly).
+type TextItem struct {
+	Text   string
+	Role   string // normalized: button, menuitem, link, tab, checkbox, radio, textfield, text, image, other
+	Bounds Rect
+	Source string
+	Words  []TextItem
+}

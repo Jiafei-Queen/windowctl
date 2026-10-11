@@ -614,6 +614,129 @@ static int wctl_ax_focus(long id) {
     }
     return WCTL_AX_OK;
 }
+
+// ---- find: accessibility text walk ----------------------------------
+//
+// wctl_ax_texts walks the matched window's AX subtree (and the app's
+// menu bar, so menus are findable) and returns every element with a
+// non-empty label and an on-screen frame. Label precedence: title,
+// description, string value, placeholder. Bounded (depth 64, 8000
+// elements, 1s AX messaging timeout) so a pathological app cannot hang
+// the caller. Strings are malloc'd; free with wctl_free_texts.
+typedef struct {
+    char* text;
+    char* role;
+    double x, y, w, h;
+} wctl_text_t;
+
+static char* wctl_cf_dup(CFTypeRef v) {
+    if (!v || CFGetTypeID(v) != CFStringGetTypeID()) return NULL;
+    CFStringRef s = (CFStringRef)v;
+    if (CFStringGetLength(s) == 0) return NULL;
+    CFIndex max = CFStringGetMaximumSizeForEncoding(CFStringGetLength(s), kCFStringEncodingUTF8) + 1;
+    char* buf = (char*)malloc(max);
+    if (!buf) return NULL;
+    if (!CFStringGetCString(s, buf, max, kCFStringEncodingUTF8)) { free(buf); return NULL; }
+    return buf;
+}
+
+static char* wctl_ax_str(AXUIElementRef el, CFStringRef attr) {
+    CFTypeRef v = NULL;
+    if (AXUIElementCopyAttributeValue(el, attr, &v) != kAXErrorSuccess || !v) return NULL;
+    char* out = wctl_cf_dup(v);
+    CFRelease(v);
+    return out;
+}
+
+static int wctl_ax_frame(AXUIElementRef el, double* x, double* y, double* w, double* h) {
+    CFTypeRef pv = NULL, sv = NULL;
+    CGPoint p; CGSize sz;
+    int ok = 0;
+    if (AXUIElementCopyAttributeValue(el, kAXPositionAttribute, &pv) == kAXErrorSuccess && pv &&
+        AXUIElementCopyAttributeValue(el, kAXSizeAttribute, &sv) == kAXErrorSuccess && sv &&
+        AXValueGetValue((AXValueRef)pv, kAXValueCGPointType, &p) &&
+        AXValueGetValue((AXValueRef)sv, kAXValueCGSizeType, &sz)) {
+        *x = p.x; *y = p.y; *w = sz.width; *h = sz.height;
+        ok = sz.width > 0 && sz.height > 0;
+    }
+    if (pv) CFRelease(pv);
+    if (sv) CFRelease(sv);
+    return ok;
+}
+
+typedef struct { wctl_text_t* items; int n, cap, visited; } wctl_text_acc;
+
+static void wctl_ax_walk(AXUIElementRef el, int depth, wctl_text_acc* acc) {
+    if (depth > 64 || acc->visited++ > 8000) return;
+    char* label = wctl_ax_str(el, kAXTitleAttribute);
+    if (!label) label = wctl_ax_str(el, kAXDescriptionAttribute);
+    if (!label) label = wctl_ax_str(el, kAXValueAttribute);
+    if (!label) label = wctl_ax_str(el, CFSTR("AXPlaceholderValue"));
+    if (!label) {
+        // Untitled buttons (window close/minimize/zoom, icon buttons) still
+        // have a role description: "close button", "minimize button".
+        char* role = wctl_ax_str(el, kAXRoleAttribute);
+        if (role && strstr(role, "Button")) label = wctl_ax_str(el, kAXRoleDescriptionAttribute);
+        if (role) free(role);
+    }
+    if (label) {
+        double x, y, w, h;
+        if (wctl_ax_frame(el, &x, &y, &w, &h)) {
+            if (acc->n == acc->cap) {
+                acc->cap = acc->cap ? acc->cap * 2 : 256;
+                acc->items = (wctl_text_t*)realloc(acc->items, sizeof(wctl_text_t) * acc->cap);
+            }
+            wctl_text_t* t = &acc->items[acc->n++];
+            t->text = label; label = NULL;
+            t->role = wctl_ax_str(el, kAXRoleAttribute);
+            t->x = x; t->y = y; t->w = w; t->h = h;
+        }
+        if (label) free(label);
+    }
+    CFArrayRef kids = NULL;
+    if (AXUIElementCopyAttributeValue(el, kAXChildrenAttribute, (CFTypeRef*)&kids) == kAXErrorSuccess && kids) {
+        CFIndex n = CFArrayGetCount(kids);
+        for (CFIndex i = 0; i < n; i++) {
+            wctl_ax_walk((AXUIElementRef)CFArrayGetValueAtIndex(kids, i), depth + 1, acc);
+        }
+        CFRelease(kids);
+    }
+}
+
+static int wctl_ax_texts(long id, wctl_text_t** out) {
+    *out = NULL;
+    if (!wctl_ax_check()) return WCTL_AX_ERR_DENIED;
+    long pid = 0;
+    double cx = 0, cy = 0, cw = 0, ch = 0;
+    char* title = NULL;
+    int got = wctl_window_for_id(id, &pid, &cx, &cy, &cw, &ch, &title);
+    if (got < 0) { if (title) free(title); return WCTL_AX_ERR_INTERNAL; }
+    if (got == 0) { if (title) free(title); return WCTL_AX_ERR_NOTFOUND; }
+    AXUIElementRef w = wctl_ax_resolve((pid_t)pid, title, cx, cy, cw, ch);
+    if (title) free(title);
+    if (!w) return WCTL_AX_ERR_NOWINDOW;
+    AXUIElementSetMessagingTimeout(w, 1.0);
+    wctl_text_acc acc = {0};
+    wctl_ax_walk(w, 0, &acc);
+    CFRelease(w);
+    AXUIElementRef app = AXUIElementCreateApplication((pid_t)pid);
+    if (app) {
+        AXUIElementSetMessagingTimeout(app, 1.0);
+        CFTypeRef bar = NULL;
+        if (AXUIElementCopyAttributeValue(app, kAXMenuBarAttribute, &bar) == kAXErrorSuccess && bar) {
+            wctl_ax_walk((AXUIElementRef)bar, 0, &acc);
+            CFRelease(bar);
+        }
+        CFRelease(app);
+    }
+    *out = acc.items;
+    return acc.n;
+}
+
+static void wctl_free_texts(wctl_text_t* t, int n) {
+    for (int i = 0; i < n; i++) { free(t[i].text); free(t[i].role); }
+    free(t);
+}
 */
 import "C"
 
@@ -919,4 +1042,56 @@ func cStringOrEmpty(p *C.char) string {
 		return ""
 	}
 	return C.GoString(p)
+}
+
+// AccessibleTexts walks the window's AX tree plus its app's menu bar.
+func (a *Adapter) AccessibleTexts(id string) ([]core.TextItem, error) {
+	wid, err := parseCGWindowID(id)
+	if err != nil {
+		return nil, err
+	}
+	var items *C.wctl_text_t
+	n := int(C.wctl_ax_texts(C.long(wid), &items))
+	if n < 0 {
+		return nil, translateAXReturn(n, id, "find")
+	}
+	if items == nil {
+		return nil, nil
+	}
+	defer C.wctl_free_texts(items, C.int(n))
+	out := make([]core.TextItem, 0, n)
+	for _, t := range unsafe.Slice(items, n) {
+		out = append(out, core.TextItem{
+			Text:   C.GoString(t.text),
+			Role:   normalizeAXRole(cStringOrEmpty(t.role)),
+			Bounds: core.Rect{X: int(t.x), Y: int(t.y), W: int(t.w + 0.5), H: int(t.h + 0.5)},
+			Source: "accessibility",
+		})
+	}
+	return out, nil
+}
+
+func normalizeAXRole(r string) string {
+	switch r {
+	case "AXButton", "AXPopUpButton", "AXMenuButton", "AXDisclosureTriangle":
+		return "button"
+	case "AXMenuItem", "AXMenuBarItem", "AXMenu":
+		return "menuitem"
+	case "AXLink":
+		return "link"
+	case "AXTab", "AXRadioButton":
+		if r == "AXTab" {
+			return "tab"
+		}
+		return "radio"
+	case "AXCheckBox", "AXSwitch", "AXToggle":
+		return "checkbox"
+	case "AXTextField", "AXTextArea", "AXSearchField", "AXComboBox", "AXSecureTextField":
+		return "textfield"
+	case "AXStaticText", "AXHeading":
+		return "text"
+	case "AXImage":
+		return "image"
+	}
+	return "other"
 }

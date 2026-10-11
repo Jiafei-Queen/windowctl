@@ -1,6 +1,9 @@
 package core
 
-import "errors"
+import (
+	"errors"
+	"image"
+)
 
 // Sentinel errors are stripped of any "windowctl:" prefix so the CLI
 // can add it once at print time. Wrapping these from elsewhere in the
@@ -103,6 +106,33 @@ type Adapter interface {
 	// windows (true / nil).
 	CheckScreenCapture() bool
 	RequestScreenCapture() error
+
+	// OverlayScale reports how drawings on the display holding bounds
+	// should be scaled: ui multiplies the size metrics (stroke, font) so
+	// they look the same physical size everywhere (1 on macOS, whose
+	// coordinates are already points; DPI/96 on Windows, whose
+	// coordinates are physical pixels), and pixel is how many image
+	// pixels make one coordinate unit (the backing scale on macOS, 1 on
+	// Windows), so the overlay is crisp on HiDPI screens.
+	OverlayScale(bounds Rect) (ui, pixel float64)
+	// ShowOverlay puts img (premultiplied RGBA, img size = bounds size
+	// x pixel scale) on screen over bounds in a transparent, click-
+	// through, never-focused, topmost window, and blocks pumping the
+	// platform event loop until done() reports true. Needs no admin
+	// rights and no macOS permission. On macOS it must run on the main
+	// thread (the darwin adapter locks the main goroutine to it).
+	ShowOverlay(bounds Rect, img *image.RGBA, done func() bool) error
+
+	// AccessibleTexts walks the window's accessibility tree (AX on
+	// macOS, UI Automation on Windows) and returns every element that
+	// has a label, with its global bounds and normalized role. Needs the
+	// Accessibility grant on macOS (ErrAccessibilityDenied).
+	AccessibleTexts(windowID string) ([]TextItem, error)
+	// RecognizeText OCRs what is on screen inside bounds (Vision on
+	// macOS, Windows.Media.Ocr on Windows) and returns lines with word
+	// boxes, in global coordinates. Needs Screen Recording on macOS
+	// (ErrScreenCaptureDenied). The caller makes the window visible.
+	RecognizeText(bounds Rect) ([]TextItem, error)
 }
 
 // MouseButton identifies which button MouseClick presses.

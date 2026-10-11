@@ -46,6 +46,10 @@ func main() {
 		launchCmd(os.Args[2:])
 	case "wait":
 		waitCmd(os.Args[2:])
+	case "find":
+		findCmd(os.Args[2:])
+	case "draw":
+		drawCmd(os.Args[2:])
 	case "remote":
 		remoteCmd(os.Args[2:])
 	case "install":
@@ -80,6 +84,10 @@ Usage:
   windowctl key --combo <s> [--title <s> | --app <s>]   (e.g. "cmd+shift+s", "ctrl+c", "enter")
   windowctl launch --app <s>
   windowctl wait (--title <s> | --app <s>) [--timeout <ms>] [--json]
+  windowctl draw (--at X,Y | --rect X,Y,W,H | --title <s> | --app <s> | --mouse) --text <s> [--style arrow|ring|box] [--shape bend|straight|zigzag|spiral] [--color <c>] [--detach] [--preview <png>] [--json]
+  windowctl find (--title <s> | --app <s>) --text <s> [--source auto|accessibility|ocr] [--role button|menuitem|...] [--all] [--json]
+  windowctl draw (--title <s> | --app <s>) --find <s> --text <s>   (circle + arrow at that text)
+  windowctl draw stop | draw config [--init] | draw fonts
   windowctl remote [--monitor <n>] [--port <n>] [--fps <n>] [--tunnel]   (browser screen-share + control; Ctrl-C to stop)
   windowctl install --skills [--agents]
   windowctl uninstall --skills [--agents]`)

@@ -163,6 +163,7 @@ If the session ends, the skill re-lists.
    - Bulk-place / save / restore a layout (`windowctl batch`) → `references/batch.md`
    - Focus / raise a window → `references/focus.md`
    - Screenshot / mouse / type / key / launch / wait (automate the UI, the visual loop) → `references/automation.md`
+   - Point at something on the human's screen (arrow + sign, ring, box; `windowctl draw`) → `references/draw.md`
    - macOS Accessibility prompts + AX-bridge debugging → `references/permissions.md`
    - Composite layouts ("split chrome + slack 50/50") → `references/recipes.md`
 3. Need a zone refresher? → `references/zones.md` (cheatsheet for 1A..2D
