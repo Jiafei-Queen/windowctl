@@ -18,6 +18,18 @@ windowctl draw stop                                               # remove every
 windowctl draw --at X,Y --text "..." --preview out.png --json     # render only, show nothing
 ```
 
+Point at a control by its text — no coordinates needed:
+
+```sh
+windowctl find --app "System Settings" --text "Allow" --role button --json   # bounds only
+windowctl draw --app "System Settings" --find "Allow" --text "Click Allow"   # box + arrow
+windowctl draw --app Notepad --find "File" --role menuitem --style ring --text "Menus"
+```
+
+`--find` reads the accessibility tree (buttons, menus, links, labels), then
+OCR for anything drawn as pixels. Exit 3 = not found; the error lists the
+closest labels it saw — retry with one of them.
+
 Coordinates are the same as `screenshot` / `mouse`: read a pixel off a
 screenshot (plus the capture origin) and draw at it.
 

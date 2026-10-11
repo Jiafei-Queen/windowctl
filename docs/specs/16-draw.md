@@ -40,6 +40,10 @@ Targets use the same coordinate model as `screenshot`/`mouse`: global points (ma
 
 Exactly one of `--at X,Y`, `--rect X,Y,W,H`, `--title`/`--app` (the window's bounds, boxed; first match wins), `--mouse`. `--monitor N` makes `--at`/`--rect` relative. Zero or several targets, or a missing `--text`, exit 2 with an actionable message; no matching window is `ErrNoMatch`.
 
+## Requirement: Find (`windowctl find`, `draw --find`)
+
+Locate text inside a matched window and return its exact global bounds: first the accessibility tree (macOS AX incl. the app's menu bar; Windows UI Automation `FindAll` over descendants), then OCR (macOS Vision `VNRecognizeTextRequest` at native resolution with per-word `boundingBoxForRange:`; Windows `Windows.Media.Ocr` over a 1:1 capture). Both are in-box, on-device, no admin. Ranking: exact label > whole word > prefix > substring; then interactive roles (button, menuitem, link, tab, checkbox, radio) > textfield > text; then top-to-bottom. A partial match inside a large element (text area, web view) is narrowed to the exact words by OCR of that element. `--role` filters accessibility matches; `--source auto|accessibility|ocr`; `--nth N`. Not found → exit 3 with the closest labels seen. `draw --find` resolves once (the detached child draws that rect) and boxes the element tightly with 8pt padding plus a short arrow (bigarrow style); `--style ring` draws an ellipse hugging the rect. Linux: not implemented.
+
 ## Requirement: Look
 
 `--style arrow|ring|box`, `--shape bend|straight|zigzag|spiral`, `--size S|M|L`, `--border shadow|white-black|black`, `--corners round|sharp`, `--from auto|<8 sides>` (a preference — falls back to the roomiest side if the sign would not fit), `--color` preset or hex, `--text-color`, `--border-color`, `--edge-color`, `--font` (path or system font name; `windowctl draw fonts` lists them), `--font-scale`.
