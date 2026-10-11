@@ -23,7 +23,7 @@ The look is ported from [bigarrow](https://github.com/franzenzenhofer/big-arrow-
 | `--at X,Y` | a point — the arrow tip lands exactly on it |
 | `--rect X,Y,W,H` | a rectangle (boxed) |
 | `--title T` / `--app A` | a window's bounds (boxed) |
-| `--title/--app` + `--find TEXT` | a button / menu / label inside the window (ring) |
+| `--title/--app` + `--find TEXT` | a button / menu / label inside the window — boxed tightly (8pt padding) with a short arrow |
 | `--mouse` | the cursor |
 
 `--monitor N` makes `--at` / `--rect` relative to monitor N — the same
@@ -47,6 +47,20 @@ windowctl draw --at 700,500 --text "Left"  --from left --border white-black --co
 - `--font <name or path>` (`windowctl draw fonts` lists them) · `--font-scale` · `--text-color` · `--border-color` · `--edge-color`
 
 Colours are tuned so sign text reaches WCAG AA contrast where the hue allows.
+Placement prefers the side that keeps the sign **closest** to the target, so
+arrows stay short. Every glyph falls back per character to a font that has it,
+so a sign never shows a missing-glyph box.
+
+### Pointing at a found element
+
+```sh
+windowctl draw --app TextEdit --find "Format" --text "Format menu"               # tight box + short arrow
+windowctl draw --app TextEdit --find "Format" --text "Format menu" --style ring  # an oval hugging the element
+```
+
+`--find` resolves the element once, then boxes it with 8pt of padding so the
+outline never covers the label itself — bigarrow's look. `--style ring` draws
+an ellipse around the same rect instead.
 
 ## Lifetime
 

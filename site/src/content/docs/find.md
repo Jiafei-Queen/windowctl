@@ -19,7 +19,13 @@ pixel maths.
 `--source auto` (the default) asks the **accessibility tree** first — the
 labels an app exposes to screen readers, which are exact and cheap. When the
 app exposes nothing useful (canvas apps, games, some Electron UIs) it falls
-back to **OCR** on a screenshot of the window.
+back to **OCR** on a screenshot of the window. On macOS the accessibility pass
+includes the app's menu bar.
+
+Ranking: exact label > whole word > prefix > substring, then interactive roles
+(button, menu item, link, tab…) over plain text, then top to bottom. A partial
+match inside a big element (a text area, a web view) is narrowed to the exact
+words with OCR. Nothing found exits 3 and lists the closest labels it saw.
 
 ```sh
 windowctl find --app TextEdit --text "Untitled" --source accessibility
@@ -37,8 +43,9 @@ windowctl find --app TextEdit --text "Untitled" --source ocr
 windowctl draw --app "System Settings" --find "Privacy" --text "Click this"
 ```
 
-`draw --find` runs the same search and rings the match. `--nth`, `--role`,
-`--exact` and `--source` work there too.
+`draw --find` runs the same search once and boxes the match tightly (8pt
+padding) with a short arrow; add `--style ring` for an oval instead. `--nth`,
+`--role`, `--exact` and `--source` work there too.
 
 ## Platforms
 
