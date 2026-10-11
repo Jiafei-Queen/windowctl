@@ -518,9 +518,9 @@ func planLayout(target frect, isPoint bool, area, bounds frect, signW, signH flo
 		anchor = vec{target.X, target.Y}
 	}
 	var mk drawMark
-	// Box padding hugs small elements (a toggle, a word) and gives big
-	// ones (a window) bigarrow's 8pt.
-	pad := math.Max(3, math.Min(8, math.Min(target.W, target.H)*0.25)) * ui
+	// bigarrow's 8pt: just over half the outline (6pt line + 6pt border),
+	// so the box never covers the text it is highlighting.
+	pad := 8 * ui
 	switch {
 	case o.Style == DrawRing && isPoint:
 		mk = drawMark{kind: markRing, center: anchor, rx: 36 * ui, ry: 36 * ui}
