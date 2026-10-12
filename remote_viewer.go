@@ -1,6 +1,7 @@
 package windowctl
 
 import (
+	"html"
 	"strconv"
 	"strings"
 )
@@ -11,12 +12,13 @@ import (
 // true screen point using the frame's natural pixel size and the
 // origin headers (screenshots are point-normalized: 1 image pixel == 1
 // screen point, so screenX = originX + naturalPixelX).
-func remoteViewerHTML(token string, pollMS int) string {
+func remoteViewerHTML(token string, pollMS int, title string) string {
 	// Placeholder replacement (not Sprintf) because the embedded CSS/JS
 	// is full of literal % signs. The token is server-minted hex, safe
 	// to inline as a JS string literal.
 	r := strings.NewReplacer(
 		"__TOKEN__", token,
+		"__TITLE__", html.EscapeString(title),
 		"__POLL__", strconv.Itoa(pollMS),
 	)
 	return r.Replace(viewerTemplate)
@@ -27,7 +29,7 @@ const viewerTemplate = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=6, user-scalable=yes">
-<title>windowctl remote</title>
+<title>__TITLE__</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -56,7 +58,7 @@ const viewerTemplate = `<!doctype html>
 </head>
 <body>
 <header>
-  <span class="dot"></span><b>windowctl remote</b>
+  <span class="dot"></span><b>__TITLE__</b>
   <label>Monitor <select id="mon"></select></label>
   <label><input type="checkbox" id="ctl" checked> control</label>
   <button id="kbd" type="button" title="focus the type box (raises the keyboard on mobile)">⌨</button>

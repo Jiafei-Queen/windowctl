@@ -56,6 +56,7 @@ type RemoteOptions struct {
 	Quality int     // JPEG quality; 0 means 60
 	Key     string  // access token; must be >= 16 chars. Empty generates one.
 	Bind    string  // listen address; empty means all interfaces
+	Title   string  // viewer page title; empty means "windowctl remote"
 }
 
 // RemoteHandle is a running server.
@@ -107,7 +108,12 @@ func Remote(opts RemoteOptions) (*RemoteHandle, error) {
 		return nil, errors.New("remote: Monitor must be >= 1 (use 1, 2, 3, ...; nil to auto-resolve)")
 	}
 
+	title := opts.Title
+	if title == "" {
+		title = "windowctl remote"
+	}
 	srv := &remoteServer{
+		title:          title,
 		defaultMonitor: opts.Monitor,
 		token:          key,
 		frameInterval:  time.Duration(float64(time.Second) / fps),
@@ -175,6 +181,7 @@ func RemoteToken() string {
 }
 
 type remoteServer struct {
+	title          string
 	defaultMonitor *int
 	token          string
 	frameInterval  time.Duration
@@ -528,7 +535,7 @@ func (s *remoteServer) handleInput(w http.ResponseWriter, r *http.Request) {
 
 func (s *remoteServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	buf.WriteString(remoteViewerHTML(s.token, int(s.frameInterval/time.Millisecond)))
+	buf.WriteString(remoteViewerHTML(s.token, int(s.frameInterval/time.Millisecond), s.title))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write(buf.Bytes())
 }
