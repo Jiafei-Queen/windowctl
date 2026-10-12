@@ -9,7 +9,7 @@ windowctl resize --app "Google Chrome" --w 900 --h 700
 windowctl focus --title "jira"
 ```
 
-- **`move`** places a window: by [zone](/zones/), by split, or by coordinates.
+- **`move`** places a window: by [zone](/windowctl/zones/), by split, or by coordinates.
 - **`resize`** keeps the window's current X/Y and changes only its size.
 - **`focus`** raises the window and activates its application.
 
@@ -36,4 +36,4 @@ Accessibility element is a fresh lookup under the owning process, disambiguated
 by title and bounds — no caching that can go stale, no private API.
 
 Without permission, these exit with a clear `Accessibility permission denied`
-error. See [Permissions](/permissions/).
+error. See [Permissions](/windowctl/permissions/).

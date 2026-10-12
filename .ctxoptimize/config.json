@@ -1,0 +1,12 @@
+{
+  "name": "windowctl",
+  "modules": [
+    {
+      "path": "npm"
+    },
+    {
+      "path": "site"
+    }
+  ],
+  "wiki": false
+}

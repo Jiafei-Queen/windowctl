@@ -353,11 +353,11 @@ WCTL_AX_DEBUG=1 windowctl move --app "Google Chrome" --x 100 --y 100 --w 800 --h
 
 If you want to drive `windowctl` from an agent in plain English (*"split chrome left, slack right"*, *"send vscode to my external"*, *"save this layout as work-mode"*) instead of writing flag combinations, there is a companion agent skill:
 
-```sh
-windowctl install --skills
-```
+**It installs itself.** Every `windowctl` run makes sure the bundled `window-ctl-skill` is present and matches the binary, in `~/.claude/skills/window-ctl-skill` and — when `~/.agents` exists or `codex` is on your PATH — `~/.agents/skills/window-ctl-skill`. Upgrading windowctl upgrades the skill on the next run. Nothing to do by hand.
 
-That installs the bundled `window-ctl-skill` into `~/.claude/skills/window-ctl-skill`, and also into `~/.agents/skills/window-ctl-skill` when `codex` is on your PATH.
+- Opt out: `export WINDOWCTL_NO_SKILL_AUTOINSTALL=1`, or run `windowctl uninstall --skills` (remembered; `windowctl install --skills` turns it back on).
+- A symlinked dev copy (`skills/Taskfile.yml` `local:install`) is never overwritten.
+- `windowctl install --skills [--agents]` still forces a fresh copy.
 
 If you prefer the registry flow, the published copy is still available:
 

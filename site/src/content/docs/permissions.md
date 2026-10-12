@@ -24,13 +24,15 @@ your agent's host process — not to windowctl itself.
 
 ## Screen Recording
 
-Needed for `screenshot` and screen capture. macOS prompts on first use.
+Needed for `screenshot`, OCR in `find`, and `remote`. Separate from
+Accessibility:
 
-## System audio
+```sh
+windowctl permissions --screen            # prompt for Screen Recording
+windowctl permissions --screen --status   # read-only check
+```
 
-Needed for non-silent speaker loopback. Without it, macOS delivers frames of
-silence rather than an error — so a capture that "works" can still be recording
-nothing. Check levels, not just frame counts.
+`draw` needs neither permission.
 
 ## Scripting around it
 

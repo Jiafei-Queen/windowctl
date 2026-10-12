@@ -2,6 +2,7 @@ package windowctl
 
 import (
 	"errors"
+	"image"
 	"strings"
 	"testing"
 
@@ -33,6 +34,12 @@ type mockAdapter struct {
 	typedText    string
 	pressedChord *Chord
 	launchedApp  string
+
+	axTexts  map[string][]core.TextItem
+	axErr    error
+	ocrTexts []core.TextItem
+	ocrErr   error
+	ocrRect  core.Rect
 }
 
 func (m *mockAdapter) ListWindows() ([]Window, error)   { return m.windows, m.listErr }
@@ -93,8 +100,19 @@ func (m *mockAdapter) Launch(app string) error {
 	m.launchedApp = app
 	return nil
 }
-func (m *mockAdapter) CheckScreenCapture() bool    { return true }
-func (m *mockAdapter) RequestScreenCapture() error { return nil }
+func (m *mockAdapter) CheckScreenCapture() bool                  { return true }
+func (m *mockAdapter) RequestScreenCapture() error               { return nil }
+func (m *mockAdapter) OverlayScale(core.Rect) (float64, float64) { return 1, 1 }
+func (m *mockAdapter) AccessibleTexts(id string) ([]core.TextItem, error) {
+	return m.axTexts[id], m.axErr
+}
+func (m *mockAdapter) RecognizeText(b core.Rect) ([]core.TextItem, error) {
+	m.ocrRect = b
+	return m.ocrTexts, m.ocrErr
+}
+func (m *mockAdapter) ShowOverlay(core.Rect, *image.RGBA, func() bool) error {
+	return core.ErrNotImplemented
+}
 
 func sampleWindows() []Window {
 	return []Window{

@@ -15,6 +15,9 @@ type skillInstallFn func(windowctl.SkillInstallOptions) ([]windowctl.SkillInstal
 
 func installCmd(args []string) {
 	rc := runInstall(os.Stdout, os.Stderr, args, exec.LookPath, windowctl.InstallBundledSkill)
+	if rc == 0 {
+		windowctl.SetSkillAutoInstall(true)
+	}
 	if rc != 0 {
 		os.Exit(rc)
 	}
@@ -22,6 +25,9 @@ func installCmd(args []string) {
 
 func uninstallCmd(args []string) {
 	rc := runUninstall(os.Stdout, os.Stderr, args, exec.LookPath, windowctl.UninstallBundledSkill)
+	if rc == 0 {
+		windowctl.SetSkillAutoInstall(false)
+	}
 	if rc != 0 {
 		os.Exit(rc)
 	}
@@ -84,4 +90,18 @@ func resolveIncludeAgents(agents bool, lookPath func(string) (string, error)) bo
 
 func printTopLevelSkillUsage(w io.Writer, verb string) {
 	fmt.Fprintf(w, "usage: windowctl %s --skills [--agents]\n", verb)
+}
+
+// autoInstallSkill keeps the bundled agent skill installed and current
+// on every run, so `install --skills` is never a required step. Silent
+// unless it changed something; never fails the command.
+func autoInstallSkill(cmd string) {
+	switch cmd {
+	case "install", "uninstall", "help", "-h", "--help":
+		return
+	}
+	results, _ := windowctl.EnsureBundledSkill()
+	for _, r := range results {
+		fmt.Fprintf(os.Stderr, "windowctl: agent skill %s at %s (set %s=1 to disable)\n", r.Action, r.Path, windowctl.SkillAutoInstallEnv)
+	}
 }

@@ -1,6 +1,6 @@
 ---
 title: windowctl
-description: Move, resize, focus and tile windows across every monitor — one static binary on macOS, Windows and Linux. Plus a device layer that types, clicks, screenshots and captures the screen.
+description: Move, resize, focus and tile windows across every monitor — one static binary on macOS, Windows and Linux. Plus screenshots, mouse & keyboard, on-screen arrows, find-by-text and browser remote control.
 template: splash
 head:
   # Without this the tag renders as "windowctl | windowctl" — the page title
@@ -11,10 +11,10 @@ hero:
   tagline: Put every window exactly where it belongs — from a script, from Go, or from plain English. One static binary, three platforms, no daemon.
   actions:
     - text: Quickstart
-      link: /quickstart/
+      link: /windowctl/quickstart/
       icon: right-arrow
     - text: Zones & splits
-      link: /zones/
+      link: /windowctl/zones/
       icon: right-arrow
       variant: minimal
     - text: GitHub
@@ -32,6 +32,11 @@ windowctl move --app "Google Chrome" --zone 1A     # left half
 windowctl move --app "Slack" --monitor 2 --zone 2B # top-right of the second display
 ```
 
+<video class="wc-demo" src="/windowctl/demo/windowctl-demo.mp4" poster="/windowctl/demo/poster.jpg" controls playsinline preload="metadata">
+	<track kind="captions" src="/windowctl/demo/windowctl-demo.vtt" srclang="en" label="English" default />
+</video>
+<p class="wc-caption">85 seconds with voiceover and captions, recorded with the real CLI on macOS and on Windows 11 (Notepad) — 25 chapters: windows, monitors, zones, splits, coords, resize, focus, batch, screenshot, mouse, type, key, launch/wait, find (accessibility + OCR), draw, remote.</p>
+
 <p class="wc-lede">
 That is the whole product surface for the common case. No config file, no
 daemon to keep running, no menu-bar app. A window manager you can call from a
@@ -48,12 +53,12 @@ shell script, a Makefile, a Go program, or an AI agent.
 		<dd>1 binary<small>no runtime, no daemon, no postinstall</small></dd>
 	</div>
 	<div class="wc-fact">
-		<dt>Screenshot</dt>
-		<dd>110 ms<small>1920×1080 via ScreenCaptureKit (spike S5)</small></dd>
+		<dt>Commands</dt>
+		<dd>18<small>windows · monitors · move · draw · find · remote …</small></dd>
 	</div>
 	<div class="wc-fact">
-		<dt>Stream round-trip</dt>
-		<dd>0.047 ms<small>p50, 10 ms audio frame on loopback (spike S0)</small></dd>
+		<dt>Screenshots</dt>
+		<dd>1 px = 1 pt<small>read a pixel, click that point — Retina-safe</small></dd>
 	</div>
 </dl>
 
@@ -163,11 +168,12 @@ filter runs — so they mean the same thing no matter what you filtered out.
 <TabItem label="Monitors">
 ```sh
 $ windowctl monitors list
-ID  NAME              BOUNDS                PRIMARY  ACTIVE
-1   Built-in Display  0,0 1920x1200         true     false
-2   DELL U2723QE      1920,0 3840x2160      false    true
+ID  X      Y  WIDTH  HEIGHT  PRIMARY  ACTIVE  FOCUSED
+1   -1728  0  1728   1117    false    false   false
+2   0      0  1920   1080    true     false   false
+3   1920   0  1920   1080    false    true    true
 ```
-`ACTIVE` is the monitor the cursor is on. Map "the external", "the one I'm
+`ACTIVE` is the monitor the cursor is on; `FOCUSED` holds the focused window. Map "the external", "the one I'm
 looking at", "where my cursor is" to an integer, then pass `--monitor`.
 </TabItem>
 <TabItem label="Go">
@@ -175,7 +181,8 @@ looking at", "where my cursor is" to an integer, then pass `--monitor`.
 import windowctl "github.com/muthuishere/windowctl"
 
 ws, err := windowctl.ListWindows(windowctl.Filter{App: "Google Chrome"})
-err = windowctl.MoveZone(windowctl.Target{App: "Google Chrome"}, 2, "2B")
+two := 2
+err = windowctl.MoveZone(windowctl.Match{App: "Google Chrome"}, &two, "2B")
 ```
 The CLI is a thin shell over the library — same behaviour, no shelling out to a
 binary you then have to ship.
@@ -184,87 +191,66 @@ binary you then have to ship.
 
 ## Plain English, if you'd rather
 
-The agent skill ships **inside the binary**. No package to find, no repo to
-clone, no network:
+The agent skill ships **inside the binary** and installs itself. Install
+windowctl, run any command once, and Claude Code / Codex can drive it — no
+extra step, no package to find, no network:
 
 ```sh
-windowctl install skills
+npm install -g @muthuishere/windowctl
+windowctl monitors list   # first run puts the skill in place
 ```
 
 > *"split chrome left, slack right"* · *"send vscode to my external"* ·
 > *"put everything back to work mode"*
 
-It writes `window-ctl-skill` into `~/.claude/skills/` (and `~/.agents/skills/`
-when Codex is installed). The skill is the routing layer; every action is still
+Every run keeps `window-ctl-skill` current in `~/.claude/skills/` (or
+`$CLAUDE_CONFIG_DIR/skills`) and `~/.agents/skills/` when Codex is installed,
+and upgrades it when windowctl upgrades. Opt out with
+`WINDOWCTL_NO_SKILL_AUTOINSTALL=1`. The skill is the routing layer; every action is still
 one `windowctl` call you could have typed yourself.
 
-## There is a second half: the device layer
+## Beyond windows: look, act, point
 
-The same binary is a headless robot body for testing apps that use the mic,
-camera, screen and keyboard — over a loopback WebSocket with a token and a
-per-stream ticket.
+The same binary closes the loop an agent needs — **see** the screen, **act** on
+it, and **show** a human where to look.
 
 ```sh
-windowctl type "hello"          windowctl screenshot --out shot.png
-windowctl key cmd+shift+t       windowctl click --x 400 --y 300
-windowctl serve --port 9099     windowctl start video-out --port 9100
-```
+windowctl screenshot --app TextEdit --out look.png         # 1 image pixel = 1 screen point
+windowctl type --app TextEdit --text "hello"               # focus-guarded: never types into the wrong window
+windowctl key --combo "cmd+shift+s"
+windowctl mouse click --x 812 --y 344 --double
+windowctl launch --app TextEdit && windowctl wait --app TextEdit
 
-This half is newer, and the honest state of it is:
+windowctl find --app "System Settings" --text "Privacy" --role button   # accessibility tree, then OCR
+windowctl draw --app "System Settings" --find "Privacy" --text "Click this"
+windowctl draw --at 700,500 --text "Here" --shape spiral --color blue --detach
+
+windowctl remote --tunnel     # share the screen to any browser, click and type from there
+```
 
 <table class="wc-status">
 	<thead>
-		<tr><th>Surface</th><th>State</th><th>Detail</th></tr>
+		<tr><th>Feature</th><th>macOS</th><th>Windows</th><th>Linux</th></tr>
 	</thead>
 	<tbody>
-		<tr>
-			<td>Keyboard, mouse, chords, drag</td>
-			<td><span class="wc-badge wc-badge--yes">working</span></td>
-			<td>CGEvent injection, verified round-trip</td>
-		</tr>
-		<tr>
-			<td>Screenshot + screen capture</td>
-			<td><span class="wc-badge wc-badge--yes">working</span></td>
-			<td>ScreenCaptureKit; 1920×1080 in 110 ms</td>
-		</tr>
-		<tr>
-			<td>Audio device list / set default</td>
-			<td><span class="wc-badge wc-badge--yes">working</span></td>
-			<td>CoreAudio; reversible, restores the prior default</td>
-		</tr>
-		<tr>
-			<td>Speaker loopback (audio-out)</td>
-			<td><span class="wc-badge wc-badge--partial">frames flow</span></td>
-			<td>Process tap delivers samples; non-silent audio needs the system-audio permission</td>
-		</tr>
-		<tr>
-			<td>Virtual microphone (audio-in)</td>
-			<td><span class="wc-badge wc-badge--partial">driver built</span></td>
-			<td>Our own CoreAudio plugin; loading it needs a notarized Developer ID build</td>
-		</tr>
-		<tr>
-			<td>Virtual camera (video-in)</td>
-			<td><span class="wc-badge wc-badge--no">not built</span></td>
-			<td>CoreMediaIO extension, designed in ADR 0006</td>
-		</tr>
-		<tr>
-			<td>Device layer on Windows</td>
-			<td><span class="wc-badge wc-badge--no">not built</span></td>
-			<td>Window control is fully supported there; the device layer is macOS-only so far</td>
-		</tr>
+		<tr><td><a href="/windowctl/windows/">windows / monitors list</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
+		<tr><td><a href="/windowctl/move/">move · resize · focus · batch</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
+		<tr><td><a href="/windowctl/capture/">screenshot</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">import/scrot</span></td></tr>
+		<tr><td><a href="/windowctl/input/">mouse · type · key · launch · wait</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">xdotool</span></td></tr>
+		<tr><td><a href="/windowctl/draw/">draw (arrow + sign overlay)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--partial">--preview only</span></td></tr>
+		<tr><td><a href="/windowctl/find/">find (AX/UIA + OCR)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--no">no</span></td></tr>
+		<tr><td><a href="/windowctl/remote/">remote (browser share + control)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
+		<tr><td><a href="/windowctl/agent-skill/">agent skill (auto-installed)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
 	</tbody>
 </table>
 
-Every row is backed by a runnable spike in the repo and an ADR saying why the
-decision went that way — including the ones that came back negative.
-
 ## Why it is built this way
 
-- **A tiny adapter surface.** Six primitives per OS (`ListWindows`,
-  `ListMonitors`, `Move`, `Focus`, and two permission calls). Everything that can
-  be composed from those lives in the portable layer, so zone maths, monitor
-  resolution, and filter semantics are identical on every platform and unit
-  tested once.
+- **A small adapter surface.** Each OS implements only primitives — list,
+  move, focus, capture, inject input, show an overlay. Everything composed from
+  those (zone maths, monitor resolution, filters, screenshot targeting, the focus
+  guard, every pixel `draw` paints) lives in the portable layer, identical on
+  every platform and unit tested once.
 - **CGO where it counts, nowhere else.** macOS talks to CoreGraphics and the
   Accessibility API directly — no AppleScript, no helper app, no private SPI.
   Windows is `user32.dll`.
@@ -275,5 +261,5 @@ decision went that way — including the ones that came back negative.
   proved it on real hardware, and an OpenSpec slice — then an implementation.
 
 <p class="wc-lede">
-MIT licensed. <a href="/quickstart/">Start here →</a>
+MIT licensed. <a href="/windowctl/quickstart/">Start here →</a>
 </p>

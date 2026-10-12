@@ -76,6 +76,10 @@ func skillInstallTargets(opts SkillInstallOptions) ([]skillInstallTarget, error)
 	if err != nil {
 		return nil, err
 	}
+	// Claude Code reads skills from $CLAUDE_CONFIG_DIR/skills when set.
+	if cfg := strings.TrimSpace(os.Getenv("CLAUDE_CONFIG_DIR")); cfg != "" && opts.ClaudeDir == "" && strings.TrimSpace(os.Getenv("CLAUDE_SKILLS_DIR")) == "" {
+		claudeRoot = filepath.Join(cfg, "skills")
+	}
 	targets := []skillInstallTarget{{
 		host: "claude",
 		path: filepath.Join(claudeRoot, BundledSkillName),
@@ -134,6 +138,9 @@ func installBundledSkillAt(dst string) (string, error) {
 
 	if err := copyBundledSkillTree(tmp); err != nil {
 		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(tmp, skillStampFile), []byte(bundledSkillHash()+"\n"), 0o644); err != nil {
+		return "", fmt.Errorf("write %s: %w", skillStampFile, err)
 	}
 	if err := os.RemoveAll(dst); err != nil {
 		return "", fmt.Errorf("remove existing install %s: %w", dst, err)

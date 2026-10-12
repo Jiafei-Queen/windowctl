@@ -6,7 +6,7 @@ name: Release
 #
 # ONE-TIME MANUAL SETUP (cannot be done from here — npmjs.com UI only):
 # for each of the 6 packages, Settings → Publishing access → Trusted publisher:
-#   Repository: deemwar-products/windowctl
+#   Repository: <owner>/windowctl (this repo)
 #   Workflow:   release.yaml
 # Packages: @muthuishere/windowctl and @muthuishere/windowctl-{darwin-arm64,
 # darwin-x64,linux-arm64,linux-x64,windows-x64}.

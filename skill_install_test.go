@@ -91,3 +91,34 @@ func TestUninstallBundledSkillRemovesClaudeAndAgentsInstalls(t *testing.T) {
 		}
 	}
 }
+
+func TestEnsureBundledSkillInstallsOnceThenSkips(t *testing.T) {
+	dir := t.TempDir()
+	opts := SkillInstallOptions{ClaudeDir: dir}
+	res, err := ensureBundledSkill(opts)
+	if err != nil || len(res) != 1 || res[0].Action != "installed" {
+		t.Fatalf("first run: %+v %v", res, err)
+	}
+	if res, err = ensureBundledSkill(opts); err != nil || len(res) != 0 {
+		t.Fatalf("second run should be a no-op: %+v %v", res, err)
+	}
+	stamp := filepath.Join(dir, BundledSkillName, skillStampFile)
+	if err := os.WriteFile(stamp, []byte("old\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if res, err = ensureBundledSkill(opts); err != nil || len(res) != 1 || res[0].Action != "updated" {
+		t.Fatalf("stale stamp should update: %+v %v", res, err)
+	}
+}
+
+func TestEnsureBundledSkillLeavesSymlinkAlone(t *testing.T) {
+	dir := t.TempDir()
+	src := t.TempDir()
+	if err := os.Symlink(src, filepath.Join(dir, BundledSkillName)); err != nil {
+		t.Skip("symlinks unavailable:", err)
+	}
+	res, err := ensureBundledSkill(SkillInstallOptions{ClaudeDir: dir})
+	if err != nil || len(res) != 0 {
+		t.Fatalf("symlinked dev install must not be replaced: %+v %v", res, err)
+	}
+}

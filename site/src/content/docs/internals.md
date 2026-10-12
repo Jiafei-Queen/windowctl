@@ -9,11 +9,10 @@ description: Layers, platform backends, and the spec-before-code process.
 2. **The portable package** — zone maths, monitor resolution by majority
    overlap, filter matching, the coordinate rules. Unit tested once, identical
    everywhere.
-3. **A tiny per-OS adapter** — six primitives, selected at link time by build
-   tag. Anything composable from those primitives is deliberately kept *out* of
-   here.
-4. **The device layer** — protocol, input, screen, audio, and the stream
-   servers, each with a native shim and a clean not-supported path off macOS.
+3. **A small per-OS adapter** — window primitives plus capture, mouse, keyboard,
+   launch and overlay primitives, selected at link time by build tag. Anything
+   composable from those (screenshot targeting, chord parsing, `wait`, the focus
+   guard, every pixel of `draw`) is deliberately kept *out* of here.
 
 ## Platform backends
 
@@ -31,11 +30,7 @@ mechanism on real hardware, an **ADR** recording the decision and the rejected
 alternatives, an **OpenSpec** slice describing the behaviour, and only then the
 implementation.
 
-The spikes are in the repository and they include the negative results — the
-audio loopback that delivered a quarter of a million samples with a peak level
-of exactly zero is written up as a trap, not deleted. Decisions that were
-deferred (a kernel-mode virtual microphone on Windows, for instance) say so and
-say why.
+The spikes are in the repository, including the negative results.
 
 ## Testing
 

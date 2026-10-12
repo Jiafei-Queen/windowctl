@@ -1,0 +1,82 @@
+WEBVTT
+
+00:00:00.100 --> 00:00:03.500
+windowctl. Windows, monitors, automation, draw.
+
+00:00:03.800 --> 00:00:06.197
+List every open window as a table.
+
+00:00:06.900 --> 00:00:09.436
+List monitors, with active and focused.
+
+00:00:10.000 --> 00:00:12.350
+Snap TextEdit to the left half.
+
+00:00:13.100 --> 00:00:15.590
+Quarters: Finder to the bottom right.
+
+00:00:16.200 --> 00:00:18.783
+Any split: TextEdit takes one third.
+
+00:00:19.300 --> 00:00:21.650
+Or place it at exact coordinates.
+
+00:00:22.400 --> 00:00:24.425
+Resize a window in place.
+
+00:00:25.500 --> 00:00:27.990
+Launch Calculator, then wait for it.
+
+00:00:28.600 --> 00:00:31.136
+Focus brings TextEdit to the front.
+
+00:00:31.700 --> 00:00:33.772
+Batch applies a whole layout.
+
+00:00:34.800 --> 00:00:37.429
+Screenshot just the Calculator window.
+
+00:00:37.900 --> 00:00:40.204
+Move the mouse to a found button.
+
+00:00:41.000 --> 00:00:43.583
+Click it. Calculator shows seven.
+
+00:00:44.100 --> 00:00:46.358
+Type, with focus checked first.
+
+00:00:47.200 --> 00:00:49.597
+Press key chords, like command left.
+
+00:00:50.300 --> 00:00:52.279
+Find the Format menu by name.
+
+00:00:53.400 --> 00:00:55.425
+Or find a phrase with OCR.
+
+00:00:56.500 --> 00:00:58.525
+Draw a big arrow with a sign.
+
+00:00:59.600 --> 00:01:01.672
+Box a window, or ring a point.
+
+00:01:02.700 --> 00:01:05.236
+Shapes and colours: zigzag, spiral.
+
+00:01:05.800 --> 00:01:08.197
+Numbered steps stay up with detach.
+
+00:01:08.900 --> 00:01:10.693
+Draw stop clears them all.
+
+00:01:12.000 --> 00:01:14.211
+Share your screen to a browser.
+
+00:01:15.100 --> 00:01:17.729
+On Windows, find Notepad's File menu.
+
+00:01:18.200 --> 00:01:20.365
+OCR works on Windows too.
+
+00:01:21.300 --> 00:01:24.951
+Get windowctl from npm. One binary, three platforms.

@@ -24,6 +24,11 @@ description: >
   double-click, right-click, type this text, press cmd+shift+s / hit
   enter, send keystrokes, launch an app, open an app and wait for its
   window, wait for a window to appear, automate a UI / click-through,
+  find a button / menu / text on screen, where is the Allow button,
+  locate "File" menu, point at it, draw an arrow, show me where to
+  click, highlight this, circle it, box it, numbered steps on screen,
+  open a terminal and run a command, run npm test in a terminal,
+  share / stream my screen, remote control,
   request / check accessibility or screen recording permission, AX
   permission, grant screen control, debug windowctl AX bridge. Uses
   `windowctl` (`npm install -g @muthuishere/windowctl`).
@@ -155,6 +160,9 @@ If the session ends, the skill re-lists.
 
 1. Confirm `windowctl` is on PATH. Missing → `npm install -g
    @muthuishere/windowctl`. STOP if missing; do not attempt fallbacks.
+   (Every `windowctl` run keeps this skill installed and current in
+   `~/.claude/skills` and `~/.agents/skills` — no `install --skills`
+   needed; `WINDOWCTL_NO_SKILL_AUTOINSTALL=1` turns that off.)
 2. Identify the intent and load the matching family file:
    - List windows → `references/windows.md`
    - List monitors (incl. ACTIVE / FOCUSED) → `references/monitors.md`
@@ -162,7 +170,9 @@ If the session ends, the skill re-lists.
    - Resize a window in place → `references/resize.md`
    - Bulk-place / save / restore a layout (`windowctl batch`) → `references/batch.md`
    - Focus / raise a window → `references/focus.md`
-   - Screenshot / mouse / type / key / launch / wait (automate the UI, the visual loop) → `references/automation.md`
+   - Screenshot / mouse / type / key / launch / wait (automate the UI, the visual loop; open a terminal and run a command) → `references/automation.md`
+   - Locate a button / menu / link / phrase by its text (`windowctl find`) → `references/find.md`
+   - Point at something on the human's screen (arrow + sign, ring, box; `windowctl draw`, `draw --find`) → `references/draw.md`
    - macOS Accessibility prompts + AX-bridge debugging → `references/permissions.md`
    - Composite layouts ("split chrome + slack 50/50") → `references/recipes.md`
 3. Need a zone refresher? → `references/zones.md` (cheatsheet for 1A..2D
@@ -194,6 +204,8 @@ Zero-exit means the catalogue is internally consistent and installable.
 | Batch (bulk-apply / save / restore layouts) | `references/batch.md` |
 | Focus (raise + activate, "this window" via Focused) | `references/focus.md` |
 | Automation (screenshot, mouse, type, key, launch, wait — the visual loop) | `references/automation.md` |
+| Find (button / menu / text → exact bounds; AX/UIA then OCR) | `references/find.md` |
+| Draw (arrow + sign, box, ring over every window; `--find`, steps, `draw stop`) | `references/draw.md` |
 | Permissions (macOS Accessibility + Screen Recording, `WCTL_AX_DEBUG`) | `references/permissions.md` |
 | Zones (1A..2D + N:M cheatsheet) | `references/zones.md` |
 | Composite layouts | `references/recipes.md` |

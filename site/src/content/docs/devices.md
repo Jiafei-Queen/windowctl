@@ -1,53 +1,46 @@
 ---
-title: The device layer
-description: A headless robot body for auto-testing apps that use the mic, camera, screen and keyboard.
+title: Desktop automation
+description: Screenshot, click, type, press keys, launch apps and wait for windows — the visual loop an agent needs.
 ---
 
-The same binary that moves windows can also **be** the devices an application
-under test talks to: type into it, click it, watch its screen, capture what it
-plays, and feed it a microphone.
-
-It exists because auto-testing a voice or video product needs something that can
-hold a conversation with it — not a file fixture.
-
-## Two ways to drive it
+Moving windows is half of it. The same binary also **looks** at the screen and
+**acts** on it, so an agent (or a script) can run a full look → act → confirm
+loop without any other tool.
 
 ```sh
-# one-shot verbs, no server
-windowctl type "hello"
-windowctl screenshot --out shot.png
-
-# a control plane, for streams
-windowctl serve --port 9099 --token "$TOKEN"
-windowctl start video-out --port 9100 --token "$TOKEN"
+windowctl launch --app TextEdit
+windowctl wait --app TextEdit --timeout 10000
+windowctl screenshot --app TextEdit --out /tmp/look.png         # look
+windowctl type --app TextEdit --text "hello from windowctl"     # act (focus-guarded)
+windowctl key  --app TextEdit --combo "cmd+a"
+windowctl screenshot --app TextEdit --out /tmp/confirm.png      # confirm
 ```
 
-`serve` speaks JSON over WebSocket: `hello` (token), then `list`, `start`,
-`stop`. Starting a stream binds a fresh loopback port on demand and mints a
-one-time **ticket** that the media connection must present. `start` is the
-simpler path — a fixed port, authenticated by the token itself.
+## The one invariant: 1 pixel = 1 point
 
-## Security model
+Every capture is resampled so **one image pixel equals one global screen
+coordinate** — on Retina too. Read a pixel position off the PNG, add the
+capture's origin, and that is the exact point to pass to `mouse click`. That is
+what makes a screenshot actionable instead of decorative.
 
-- Every listener binds `127.0.0.1`. Never `0.0.0.0`, on any path.
-- No token, no start: the server refuses rather than opening an unauthenticated
-  port.
-- Control connections must present a valid token in their first message, or they
-  are closed.
+## Pages
 
-## Frames
+- [Screenshots](/windowctl/capture/) — monitor, window or region to PNG.
+- [Keyboard & mouse](/windowctl/input/) — `mouse`, `type`, `key`, `launch`, `wait`, and the focus guard.
+- [Point at things](/windowctl/draw/) — draw a big arrow + sign on top of everything.
+- [Find on screen](/windowctl/find/) — locate a button or label by text.
+- [Remote control](/windowctl/remote/) — share the screen to a browser and drive it.
 
-Media travels as a fixed **16-byte binary header** plus a raw payload — magic,
-stream kind, format tag, sequence and timestamp — sized so a frame can be parsed
-without allocating and forwarded with a single write. Raw and JPEG, not a codec:
-deterministic bytes matter more than bandwidth on loopback, where a 10 ms audio
-frame round-trips in 0.047 ms.
+## Platform support
 
-## Honest status
+| Command | macOS | Windows | Linux |
+|---|---|---|---|
+| `screenshot` | CGWindowList, pure CGO | GDI `BitBlt` | `import` / `scrot` |
+| `mouse`, `type`, `key` | CGEvent | `SendInput` | `xdotool` |
+| `launch`, `wait` | yes | yes | yes |
+| `draw` overlay | yes | yes | `--preview` only |
+| `find` | AX tree + Vision OCR | UI Automation + Windows.Media.Ocr | not yet |
+| `remote` | yes | yes | yes (via screenshot/xdotool) |
 
-macOS only, today. Input, screenshot, screen capture and audio-device control
-are working; speaker loopback delivers frames but needs the system-audio
-permission to be non-silent; the virtual microphone driver is built but needs a
-notarized Developer ID build to load; the virtual camera is designed, not built.
-Windows parity is pending — note that **window control** is fully supported on
-Windows regardless.
+On macOS, input reuses the Accessibility grant; `screenshot` needs the separate
+**Screen Recording** grant — see [Permissions](/windowctl/permissions/).

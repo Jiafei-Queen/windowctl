@@ -166,6 +166,39 @@ windowctl screenshot --app "Google Chrome" --out /tmp/after.png
 
 ---
 
+## Open a terminal and run a command in it
+
+When the human should SEE a command run (a demo, a long build they will
+watch, a REPL, an interactive tool). If you only need the output, run the
+command yourself instead — windowctl cannot read text back except via
+`screenshot` / `find --source ocr`.
+
+```sh
+# macOS (Terminal; Ghostty / iTerm / "Visual Studio Code" work the same by app name)
+windowctl launch --app Terminal
+windowctl wait   --app Terminal                       # --timeout is milliseconds
+windowctl key    --app Terminal --combo cmd+n         # optional: fresh window (launch reuses a running app)
+windowctl type   --app Terminal --text 'npm test'
+windowctl key    --app Terminal --combo enter
+
+# Windows
+windowctl launch --app WindowsTerminal                # or cmd / powershell
+windowctl wait   --app WindowsTerminal
+windowctl type   --app WindowsTerminal --text 'dir'
+windowctl key    --app WindowsTerminal --combo enter
+```
+
+Check it ran: `windowctl find --app Terminal --text "<expected word>" --source ocr`
+(exit 0 = on screen) or `windowctl screenshot --app Terminal`.
+
+Rules:
+- Always pass `--app` to `type`/`key` — the focus guard stops keystrokes
+  landing in the wrong window.
+- `launch` reuses an existing window, which may sit in some other
+  directory: `cd` first (`--text 'cd ~/proj && npm test'`) or open a fresh
+  window with `cmd+n` (macOS) / `ctrl+shift+n` (Windows Terminal).
+- Never type secrets; never run destructive commands the human did not ask for.
+
 ## remote — hand the live screen + control to a browser
 
 ```sh
