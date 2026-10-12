@@ -238,7 +238,7 @@ func (a *Adapter) CursorPosition() (int, int, error) {
 // every character after the first word replaced by the last one.
 //
 // The other platforms already pace: the Linux adapter passes `--delay 12` to
-// xdotool. This matches that behaviour, a little faster.
+// xdotool. 5ms still dropped and repeated characters in Win11 Notepad on arm64; 20ms is exact.
 const typeKeyDelay = 20 * time.Millisecond
 
 func (a *Adapter) TypeText(text string) error {
