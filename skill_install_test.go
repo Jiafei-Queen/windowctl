@@ -122,3 +122,25 @@ func TestEnsureBundledSkillLeavesSymlinkAlone(t *testing.T) {
 		t.Fatalf("symlinked dev install must not be replaced: %+v %v", res, err)
 	}
 }
+
+func TestRetireBundledSkillRemovesOnlyStampedCopies(t *testing.T) {
+	dir := t.TempDir()
+	opts := SkillInstallOptions{ClaudeDir: dir}
+	if _, err := ensureBundledSkill(opts); err != nil {
+		t.Fatal(err)
+	}
+	res, err := retireBundledSkill(opts)
+	if err != nil || len(res) != 1 {
+		t.Fatalf("stamped copy should be removed: %+v %v", res, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, BundledSkillName)); !os.IsNotExist(err) {
+		t.Fatalf("skill dir still present: %v", err)
+	}
+	manual := filepath.Join(dir, BundledSkillName)
+	if err := os.MkdirAll(manual, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if res, _ := retireBundledSkill(opts); len(res) != 0 {
+		t.Fatalf("unstamped copy must be kept: %+v", res)
+	}
+}

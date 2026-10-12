@@ -82,7 +82,38 @@ func EnsureBundledSkill() ([]SkillInstallResult, error) {
 			return nil, nil
 		}
 	}
-	return ensureBundledSkill(SkillInstallOptions{IncludeAgents: wantAgentsSkill()})
+	// windowctl is deprecated in favour of aos, which ships the one agent
+	// skill. Nothing new is installed; once aos is on PATH the copies this
+	// binary installed (stamped) are removed so two skills never compete.
+	if _, err := exec.LookPath("aos"); err != nil {
+		return nil, nil
+	}
+	return retireBundledSkill(SkillInstallOptions{IncludeAgents: true})
+}
+
+// retireBundledSkill removes stamped (auto-installed) copies of the
+// window-ctl skill. Symlinked dev copies and hand-made ones are kept.
+func retireBundledSkill(opts SkillInstallOptions) ([]SkillInstallResult, error) {
+	targets, err := skillInstallTargets(opts)
+	if err != nil {
+		return nil, err
+	}
+	var out []SkillInstallResult
+	var errs []error
+	for _, t := range targets {
+		if fi, err := os.Lstat(t.path); err != nil || fi.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(t.path, skillStampFile)); err != nil {
+			continue
+		}
+		if err := os.RemoveAll(t.path); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		out = append(out, SkillInstallResult{Host: t.host, Path: t.path, Action: "removed (superseded by aos)"})
+	}
+	return out, errors.Join(errs...)
 }
 
 func wantAgentsSkill() bool {
