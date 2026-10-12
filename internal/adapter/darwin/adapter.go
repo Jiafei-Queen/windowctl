@@ -560,7 +560,10 @@ static int wctl_ax_set_bounds(long id, double nx, double ny, double nw, double n
             if (es1 != kAXErrorSuccess) last_size_err = es1;
             if (ep2 != kAXErrorSuccess) last_pos_err  = ep2;
         }
-        if (last_pos_err != kAXErrorSuccess || last_size_err != kAXErrorSuccess) {
+        // A refused size (fixed-size windows like Calculator) is not a
+        // failure: the caller re-reads the bounds and reports the clamp.
+        (void)last_size_err;
+        if (last_pos_err != kAXErrorSuccess) {
             rc = WCTL_AX_ERR_SETFAIL;
         }
     }
@@ -591,9 +594,11 @@ static int wctl_ax_focus(long id) {
     if (title) free(title);
     if (!w) return WCTL_AX_ERR_NOWINDOW;
 
+    // Some apps (Calculator) refuse AXRaise yet come forward fine once
+    // activated, so a raise error is only fatal if activation can't run.
     AXError raise_err = AXUIElementPerformAction(w, kAXRaiseAction);
     CFRelease(w);
-    if (raise_err != kAXErrorSuccess) return WCTL_AX_ERR_SETFAIL;
+    int activated = 0;
 
     // [NSRunningApplication runningApplicationWithProcessIdentifier:pid]
     // — reached via the Objective-C runtime so this file stays pure C.
@@ -609,9 +614,10 @@ static int wctl_ax_focus(long id) {
             ((msg_obj_class_pid_t)objc_msgSend)(cls, selFor, (pid_t)pid);
         if (app != NULL) {
             // NSApplicationActivateIgnoringOtherApps = 1 << 1 = 2
-            ((msg_bool_obj_opts_t)objc_msgSend)(app, selAct, 2UL);
+            activated = ((msg_bool_obj_opts_t)objc_msgSend)(app, selAct, 2UL) != 0;
         }
     }
+    if (raise_err != kAXErrorSuccess && !activated) return WCTL_AX_ERR_SETFAIL;
     return WCTL_AX_OK;
 }
 
