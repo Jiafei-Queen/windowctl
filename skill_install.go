@@ -76,6 +76,10 @@ func skillInstallTargets(opts SkillInstallOptions) ([]skillInstallTarget, error)
 	if err != nil {
 		return nil, err
 	}
+	// Claude Code reads skills from $CLAUDE_CONFIG_DIR/skills when set.
+	if cfg := strings.TrimSpace(os.Getenv("CLAUDE_CONFIG_DIR")); cfg != "" && opts.ClaudeDir == "" && strings.TrimSpace(os.Getenv("CLAUDE_SKILLS_DIR")) == "" {
+		claudeRoot = filepath.Join(cfg, "skills")
+	}
 	targets := []skillInstallTarget{{
 		host: "claude",
 		path: filepath.Join(claudeRoot, BundledSkillName),

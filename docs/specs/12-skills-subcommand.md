@@ -62,7 +62,7 @@ or reaching out to GitHub at install time.
 
 ## Requirement: Automatic install on every run
 
-Every `windowctl` command except `install`/`uninstall`/`help` calls `EnsureBundledSkill`: each target (`~/.claude/skills/window-ctl-skill`; `~/.agents/skills/window-ctl-skill` when `~/.agents` exists or `codex` is on PATH) is (re)installed when missing or when its `.windowctl-bundle` stamp differs from the sha256 of the embedded bundle. One stderr line per change; silent otherwise; failures never fail the command.
+Every `windowctl` command except `install`/`uninstall`/`help` calls `EnsureBundledSkill`: each target (`$CLAUDE_CONFIG_DIR/skills` or `~/.claude/skills`, then `window-ctl-skill`; `~/.agents/skills/window-ctl-skill` when `~/.agents` exists or `codex` is on PATH) is (re)installed when missing or when its `.windowctl-bundle` stamp differs from the sha256 of the embedded bundle. One stderr line per change; silent otherwise; failures never fail the command.
 
 Skipped when: `WINDOWCTL_NO_SKILL_AUTOINSTALL` is non-empty; the target is a symlink (dev link); or the user ran `uninstall --skills` (marker `<UserConfigDir>/windowctl/skill-autoinstall-off`, cleared by `install --skills`).
 
