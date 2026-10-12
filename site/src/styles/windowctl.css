@@ -1,10 +1,9 @@
 /* ───────────────────────────────────────────────────────────────
-   windowctl — deemwar design system, windowctl accent.
+   windowctl — site theme.
 
    Same bones as the toolnexus theme (Inter, charcoal dark / soft-neutral
-   light, one accent, no gradients-for-the-sake-of-it). The accent moves off
-   deemwar blue to a tiling teal so the two products read as siblings rather
-   than the same page.
+   light, one accent, no gradients-for-the-sake-of-it). The accent is a
+   tiling teal.
 
    The signature motif is the zone grid: the product's own subject matter
    used as its visual language. Everything below is static CSS — a page
