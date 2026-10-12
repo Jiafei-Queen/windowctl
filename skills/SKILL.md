@@ -27,6 +27,7 @@ description: >
   find a button / menu / text on screen, where is the Allow button,
   locate "File" menu, point at it, draw an arrow, show me where to
   click, highlight this, circle it, box it, numbered steps on screen,
+  open a terminal and run a command, run npm test in a terminal,
   share / stream my screen, remote control,
   request / check accessibility or screen recording permission, AX
   permission, grant screen control, debug windowctl AX bridge. Uses
@@ -169,7 +170,7 @@ If the session ends, the skill re-lists.
    - Resize a window in place → `references/resize.md`
    - Bulk-place / save / restore a layout (`windowctl batch`) → `references/batch.md`
    - Focus / raise a window → `references/focus.md`
-   - Screenshot / mouse / type / key / launch / wait (automate the UI, the visual loop) → `references/automation.md`
+   - Screenshot / mouse / type / key / launch / wait (automate the UI, the visual loop; open a terminal and run a command) → `references/automation.md`
    - Locate a button / menu / link / phrase by its text (`windowctl find`) → `references/find.md`
    - Point at something on the human's screen (arrow + sign, ring, box; `windowctl draw`, `draw --find`) → `references/draw.md`
    - macOS Accessibility prompts + AX-bridge debugging → `references/permissions.md`
