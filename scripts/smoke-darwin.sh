@@ -130,7 +130,7 @@ if hit is None:
     print('TextEdit window vanished after move', file=sys.stderr)
     sys.exit(1)
 b = hit.get('Bounds') or {}
-expected = {'X': 100, 'Y': 100, 'W': 800, 'H': 600}
+expected = {'X': 100, 'Y': 100, 'Width': 800, 'Height': 600}
 diffs = {k: abs(b.get(k, 0) - expected[k]) for k in expected}
 bad = {k: d for k, d in diffs.items() if d > tol}
 if bad:
