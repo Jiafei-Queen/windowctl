@@ -102,6 +102,13 @@ func autoInstallSkill(cmd string) {
 	}
 	results, _ := windowctl.EnsureBundledSkill()
 	for _, r := range results {
-		fmt.Fprintf(os.Stderr, "windowctl: agent skill %s at %s (set %s=1 to disable)\n", r.Action, r.Path, windowctl.SkillAutoInstallEnv)
+		fmt.Fprintf(os.Stderr, "windowctl: agent skill %s at %s\n", r.Action, r.Path)
+	}
+	if fi, err := os.Stderr.Stat(); err == nil && fi.Mode()&os.ModeCharDevice != 0 {
+		fmt.Fprintln(os.Stderr, deprecationNotice)
 	}
 }
+
+// deprecationNotice is shown on interactive runs only (stderr is a
+// terminal), so scripts and agents parsing output are not disturbed.
+const deprecationNotice = "windowctl is deprecated — everything it does now lives in aos: https://github.com/muthuishere/aos"
