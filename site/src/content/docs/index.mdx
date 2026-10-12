@@ -11,10 +11,10 @@ hero:
   tagline: Put every window exactly where it belongs — from a script, from Go, or from plain English. One static binary, three platforms, no daemon.
   actions:
     - text: Quickstart
-      link: /quickstart/
+      link: /windowctl/quickstart/
       icon: right-arrow
     - text: Zones & splits
-      link: /zones/
+      link: /windowctl/zones/
       icon: right-arrow
       variant: minimal
     - text: GitHub
@@ -32,7 +32,7 @@ windowctl move --app "Google Chrome" --zone 1A     # left half
 windowctl move --app "Slack" --monitor 2 --zone 2B # top-right of the second display
 ```
 
-<video class="wc-demo" src="/demo/windowctl-demo.mp4" poster="/demo/poster.jpg" controls muted playsinline preload="metadata"></video>
+<video class="wc-demo" src="/windowctl/demo/windowctl-demo.mp4" poster="/demo/poster.jpg" controls muted playsinline preload="metadata"></video>
 <p class="wc-caption">85 seconds, recorded with the real CLI on macOS and on Windows 11 (Notepad) — 25 chapters: windows, monitors, zones, splits, coords, resize, focus, batch, screenshot, mouse, type, key, launch/wait, find (accessibility + OCR), draw, remote.</p>
 
 <p class="wc-lede">
@@ -189,18 +189,22 @@ binary you then have to ship.
 
 ## Plain English, if you'd rather
 
-The agent skill ships **inside the binary**. No package to find, no repo to
-clone, no network:
+The agent skill ships **inside the binary** and installs itself. Install
+windowctl, run any command once, and Claude Code / Codex can drive it — no
+extra step, no package to find, no network:
 
 ```sh
-windowctl install --skills
+npm install -g @muthuishere/windowctl
+windowctl monitors list   # first run puts the skill in place
 ```
 
 > *"split chrome left, slack right"* · *"send vscode to my external"* ·
 > *"put everything back to work mode"*
 
-It writes `window-ctl-skill` into `~/.claude/skills/` (and `~/.agents/skills/`
-when Codex is installed). The skill is the routing layer; every action is still
+Every run keeps `window-ctl-skill` current in `~/.claude/skills/` (or
+`$CLAUDE_CONFIG_DIR/skills`) and `~/.agents/skills/` when Codex is installed,
+and upgrades it when windowctl upgrades. Opt out with
+`WINDOWCTL_NO_SKILL_AUTOINSTALL=1`. The skill is the routing layer; every action is still
 one `windowctl` call you could have typed yourself.
 
 ## Beyond windows: look, act, point
@@ -227,14 +231,14 @@ windowctl remote --tunnel     # share the screen to any browser, click and type 
 		<tr><th>Feature</th><th>macOS</th><th>Windows</th><th>Linux</th></tr>
 	</thead>
 	<tbody>
-		<tr><td><a href="/windows/">windows / monitors list</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
-		<tr><td><a href="/move/">move · resize · focus · batch</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
-		<tr><td><a href="/capture/">screenshot</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">import/scrot</span></td></tr>
-		<tr><td><a href="/input/">mouse · type · key · launch · wait</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">xdotool</span></td></tr>
-		<tr><td><a href="/draw/">draw (arrow + sign overlay)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--partial">--preview only</span></td></tr>
-		<tr><td><a href="/find/">find (AX/UIA + OCR)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--no">no</span></td></tr>
-		<tr><td><a href="/remote/">remote (browser share + control)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
-		<tr><td><a href="/agent-skill/">install --skills</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
+		<tr><td><a href="/windowctl/windows/">windows / monitors list</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
+		<tr><td><a href="/windowctl/move/">move · resize · focus · batch</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">wmctrl</span></td></tr>
+		<tr><td><a href="/windowctl/capture/">screenshot</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">import/scrot</span></td></tr>
+		<tr><td><a href="/windowctl/input/">mouse · type · key · launch · wait</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">xdotool</span></td></tr>
+		<tr><td><a href="/windowctl/draw/">draw (arrow + sign overlay)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--partial">--preview only</span></td></tr>
+		<tr><td><a href="/windowctl/find/">find (AX/UIA + OCR)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--no">no</span></td></tr>
+		<tr><td><a href="/windowctl/remote/">remote (browser share + control)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
+		<tr><td><a href="/windowctl/agent-skill/">agent skill (auto-installed)</a></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td><td><span class="wc-badge wc-badge--yes">yes</span></td></tr>
 	</tbody>
 </table>
 
@@ -255,5 +259,5 @@ windowctl remote --tunnel     # share the screen to any browser, click and type 
   proved it on real hardware, and an OpenSpec slice — then an implementation.
 
 <p class="wc-lede">
-MIT licensed. <a href="/quickstart/">Start here →</a>
+MIT licensed. <a href="/windowctl/quickstart/">Start here →</a>
 </p>

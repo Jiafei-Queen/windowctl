@@ -3,11 +3,11 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
-// Cloudflare Pages at a custom domain — base is '/', NOT a project path.
-// (toolnexus uses base: '/toolnexus' for GitHub Pages; copying that here would
-// break every internal link. Spike S9 asserts links stay root-relative.)
+// GitHub Pages project site: https://muthuishere.github.io/windowctl/.
+// Hand-written links in content carry the /windowctl/ prefix.
 export default defineConfig({
-	site: 'https://winctl.deemwar.com',
+	site: 'https://muthuishere.github.io',
+	base: '/windowctl',
 	integrations: [
 		starlight({
 			title: 'windowctl',

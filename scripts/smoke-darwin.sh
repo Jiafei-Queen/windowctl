@@ -72,7 +72,7 @@ detected_id=''
 while [ "$(date +%s)" -lt "$deadline" ]; do
   detected_id=$(./windowctl windows list --json | python3 -c '
 import json, sys
-ws = json.load(sys.stdin)
+ws = json.load(sys.stdin) or []
 hits = [w for w in ws if "TextEdit" in (w.get("App") or "") or "TextEdit" in (w.get("Title") or "")]
 print(hits[0]["ID"] if hits else "")
 ')
@@ -121,7 +121,7 @@ if [ "$move_succeeded" -eq 1 ]; then
 import json, os, sys
 tol = int(os.environ['WCTL_TOL'])
 with open('/tmp/wctl-list-after.json') as f:
-    ws = json.load(f)
+    ws = json.load(f) or []
 hit = next(
     (w for w in ws if 'TextEdit' in (w.get('App') or '')),
     None,

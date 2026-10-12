@@ -25,11 +25,11 @@ what makes a screenshot actionable instead of decorative.
 
 ## Pages
 
-- [Screenshots](/capture/) — monitor, window or region to PNG.
-- [Keyboard & mouse](/input/) — `mouse`, `type`, `key`, `launch`, `wait`, and the focus guard.
-- [Point at things](/draw/) — draw a big arrow + sign on top of everything.
-- [Find on screen](/find/) — locate a button or label by text.
-- [Remote control](/remote/) — share the screen to a browser and drive it.
+- [Screenshots](/windowctl/capture/) — monitor, window or region to PNG.
+- [Keyboard & mouse](/windowctl/input/) — `mouse`, `type`, `key`, `launch`, `wait`, and the focus guard.
+- [Point at things](/windowctl/draw/) — draw a big arrow + sign on top of everything.
+- [Find on screen](/windowctl/find/) — locate a button or label by text.
+- [Remote control](/windowctl/remote/) — share the screen to a browser and drive it.
 
 ## Platform support
 
@@ -43,4 +43,4 @@ what makes a screenshot actionable instead of decorative.
 | `remote` | yes | yes | yes (via screenshot/xdotool) |
 
 On macOS, input reuses the Accessibility grant; `screenshot` needs the separate
-**Screen Recording** grant — see [Permissions](/permissions/).
+**Screen Recording** grant — see [Permissions](/windowctl/permissions/).

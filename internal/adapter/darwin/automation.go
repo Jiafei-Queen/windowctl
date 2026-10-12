@@ -1,3 +1,5 @@
+//go:build darwin
+
 // automation.go — screenshot + synthetic input for the darwin adapter.
 //
 // Everything is native CoreGraphics/ImageIO through CGO — no

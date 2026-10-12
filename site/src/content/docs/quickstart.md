@@ -48,6 +48,6 @@ you move if you are not sure.
 
 ## Then keep going
 
-- [Zones & splits](/zones/) — the rectangle vocabulary
-- [Layouts in one call](/batch/) — apply a whole desk arrangement
-- [Agent skill](/agent-skill/) — drive it in plain English
+- [Zones & splits](/windowctl/zones/) — the rectangle vocabulary
+- [Layouts in one call](/windowctl/batch/) — apply a whole desk arrangement
+- [Agent skill](/windowctl/agent-skill/) — drive it in plain English

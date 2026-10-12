@@ -83,4 +83,4 @@ Accessibility tree first (macOS AX including the app's menu bar, Windows UI
 Automation), OCR second. Then the agent either clicks `Center` with
 `windowctl mouse click` or points a human at it with
 `windowctl draw --app <App> --find "<text>" --text "…"`. Not found exits 3 and
-lists the closest labels it saw. See [Find on screen](/find/).
+lists the closest labels it saw. See [Find on screen](/windowctl/find/).
