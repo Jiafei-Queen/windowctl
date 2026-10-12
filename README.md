@@ -2,6 +2,11 @@
 
 > **Deprecated — windowctl now lives on inside [aos](https://github.com/muthuishere/aos).**
 > aos does everything windowctl did (windows, zones, batch, screenshot, mouse/keyboard, draw, find, remote) plus the rest of the machine, and ships the one agent skill, installed automatically. This repo stays as the Go engine aos is built on.
+>
+> ```sh
+> curl -fsSL https://raw.githubusercontent.com/muthuishere/aos/main/install.sh | sh      # macOS / Linux
+> curl -fsSL -o install.cmd https://raw.githubusercontent.com/muthuishere/aos/main/install.cmd && install.cmd   # Windows
+> ```
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/muthuishere/windowctl.svg)](https://pkg.go.dev/github.com/muthuishere/windowctl)
 
