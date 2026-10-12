@@ -20,7 +20,9 @@ pixel maths.
 labels an app exposes to screen readers, which are exact and cheap. When the
 app exposes nothing useful (canvas apps, games, some Electron UIs) it falls
 back to **OCR** on a screenshot of the window. On macOS the accessibility pass
-includes the app's menu bar.
+includes the app's menu bar — the app is focused first, and the match is
+reported on the monitor the window is on, so `draw --find Format` boxes the
+menu bar you are looking at.
 
 Ranking: exact label > whole word > prefix > substring, then interactive roles
 (button, menu item, link, tab…) over plain text, then top to bottom. A partial
