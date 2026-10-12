@@ -6,9 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -145,7 +143,7 @@ targets (exactly one):
 		}
 	}
 	opts.Duration = time.Duration(secs * float64(time.Second))
-	opts.Avoid = liveDrawingSigns()
+	opts.Avoid = windowctl.LiveDrawingSigns()
 
 	// Resolve --find exactly once, here, and draw at that rect from then
 	// on: a second search (the detached child, or the place-then-show
@@ -197,7 +195,7 @@ targets (exactly one):
 	}
 
 	if *detach {
-		res, err := spawnDetachedDraw(args)
+		res, err := windowctl.SpawnDetachedDraw(append([]string{"draw"}, withoutDetach(args)...))
 		if err != nil {
 			fail(1, err)
 		}
@@ -212,7 +210,7 @@ targets (exactly one):
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() { <-sig; close(stop) }()
 	opts.Stop = stop
-	child := os.Getenv(drawChildEnv) == "1"
+	child := windowctl.IsDrawChild()
 	if child || *asJSON {
 		// Place first so the registry / JSON say where it is before it shows.
 		res, err := windowctl.RenderDraw(opts, os.DevNull)
@@ -220,15 +218,15 @@ targets (exactly one):
 			fail(1, err)
 		}
 		if child {
-			registerDrawing(res)
-			defer unregisterDrawing()
+			windowctl.RegisterDrawing(res)
+			defer windowctl.UnregisterDrawing()
 		} else {
 			emit(res)
 		}
 	}
 	if _, err := windowctl.Draw(opts); err != nil {
 		if child {
-			unregisterDrawing()
+			windowctl.UnregisterDrawing()
 		}
 		fail(1, err)
 	}
@@ -254,122 +252,11 @@ func parseInts(s string, n int, what string) ([]int, error) {
 // small registry so `draw stop` can end them and new drawings can keep
 // their signs clear of live ones.
 
-const drawChildEnv = "WINDOWCTL_DRAW_CHILD"
-
-type drawEntry struct {
-	PID    int                  `json:"PID"`
-	Result windowctl.DrawResult `json:"Result"`
-}
-
-func drawRegistryDir() string {
-	base, err := os.UserCacheDir()
-	if err != nil {
-		base = os.TempDir()
-	}
-	return filepath.Join(base, "windowctl", "draw")
-}
-
-func drawEntryPath(pid int) string {
-	return filepath.Join(drawRegistryDir(), strconv.Itoa(pid)+".json")
-}
-
-func registerDrawing(res windowctl.DrawResult) {
-	_ = os.MkdirAll(drawRegistryDir(), 0o755)
-	b, _ := json.Marshal(drawEntry{PID: os.Getpid(), Result: res})
-	tmp := drawEntryPath(os.Getpid()) + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, drawEntryPath(os.Getpid()))
-	}
-}
-
-func unregisterDrawing() { _ = os.Remove(drawEntryPath(os.Getpid())) }
-
-// liveDrawings reads the registry, dropping entries whose process is gone.
-func liveDrawings() []drawEntry {
-	files, _ := filepath.Glob(filepath.Join(drawRegistryDir(), "*.json"))
-	var out []drawEntry
-	for _, f := range files {
-		b, err := os.ReadFile(f)
-		var e drawEntry
-		if err != nil || json.Unmarshal(b, &e) != nil || !processAlive(e.PID) {
-			_ = os.Remove(f)
-			continue
-		}
-		out = append(out, e)
-	}
-	return out
-}
-
-func liveDrawingSigns() []windowctl.Rect {
-	var out []windowctl.Rect
-	for _, e := range liveDrawings() {
-		out = append(out, e.Result.Sign)
-	}
-	return out
-}
-
-// spawnDetachedDraw re-runs this binary without --detach as a detached
-// child, then waits for it to register so the caller learns where the
-// drawing landed (and any error) before returning.
-func spawnDetachedDraw(args []string) (windowctl.DrawResult, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return windowctl.DrawResult{}, err
-	}
-	var childArgs []string
-	for _, a := range args {
-		if a == "--detach" || a == "-detach" || strings.HasPrefix(a, "--detach=") || strings.HasPrefix(a, "-detach=") {
-			continue
-		}
-		childArgs = append(childArgs, a)
-	}
-	cmd := exec.Command(exe, append([]string{"draw"}, childArgs...)...)
-	cmd.Env = append(os.Environ(), drawChildEnv+"=1")
-	errPath := filepath.Join(os.TempDir(), fmt.Sprintf("windowctl-draw-%d.err", time.Now().UnixNano()))
-	errFile, err := os.Create(errPath)
-	if err != nil {
-		return windowctl.DrawResult{}, err
-	}
-	defer os.Remove(errPath)
-	cmd.Stderr = errFile
-	detachProcess(cmd)
-	if err := cmd.Start(); err != nil {
-		errFile.Close()
-		return windowctl.DrawResult{}, err
-	}
-	errFile.Close()
-	exited := make(chan error, 1)
-	go func() { exited <- cmd.Wait() }()
-	deadline := time.After(10 * time.Second)
-	for {
-		if b, err := os.ReadFile(drawEntryPath(cmd.Process.Pid)); err == nil {
-			var e drawEntry
-			if json.Unmarshal(b, &e) == nil {
-				return e.Result, nil
-			}
-		}
-		select {
-		case <-exited:
-			msg, _ := os.ReadFile(errPath)
-			return windowctl.DrawResult{}, fmt.Errorf("drawing failed: %s", strings.TrimSpace(strings.TrimPrefix(string(msg), "windowctl draw: ")))
-		case <-deadline:
-			return windowctl.DrawResult{}, errors.New("drawing did not start within 10s")
-		case <-time.After(50 * time.Millisecond):
-		}
-	}
-}
-
 func drawStopCmd(args []string) {
 	fs := flag.NewFlagSet("draw stop", flag.ExitOnError)
 	asJSON := fs.Bool("json", false, "print how many drawings were stopped as JSON")
 	_ = fs.Parse(args)
-	n := 0
-	for _, e := range liveDrawings() {
-		if stopProcess(e.PID) == nil {
-			n++
-		}
-		_ = os.Remove(drawEntryPath(e.PID))
-	}
+	n := windowctl.StopDrawings()
 	if *asJSON {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]int{"Stopped": n})
 		return
@@ -426,6 +313,17 @@ func stripFlags(args []string, valued, boolean map[string]bool) []string {
 			i++ // skip its value
 			continue
 		} else if boolean[name] {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+func withoutDetach(args []string) []string {
+	var out []string
+	for _, a := range args {
+		if a == "--detach" || a == "-detach" || strings.HasPrefix(a, "--detach=") || strings.HasPrefix(a, "-detach=") {
 			continue
 		}
 		out = append(out, a)
