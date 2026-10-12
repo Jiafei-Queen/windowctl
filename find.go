@@ -96,10 +96,17 @@ func findTextWith(a Adapter, o FindOptions) ([]FoundText, error) {
 		axErr = err
 		if err == nil {
 			items = withinWindow(items, w.Bounds)
+			items = menuBarOnWindowMonitor(a, items, w.Bounds)
 			seen = append(seen, items...)
 			if hits := rankMatches(items, q, o); len(hits) > 0 {
 				if o.Source == FindAuto {
 					hits[0] = refineWithOCR(a, w, hits[0], q, o)
+				}
+				// A menu-bar item only shows the app's menus while the
+				// app is frontmost.
+				if b := hits[0].Bounds; !o.NoRaise && hits[0].Role == "menuitem" &&
+					(b.Y+b.H <= w.Bounds.Y || b.Y >= w.Bounds.Y+w.Bounds.H) {
+					_ = a.Focus(w.ID)
 				}
 				return hits, nil
 			}
@@ -174,6 +181,46 @@ func withinWindow(items []TextItem, wb Rect) []TextItem {
 		}
 	}
 	return out
+}
+
+// menuBarOnWindowMonitor moves menu-bar items onto the window's
+// monitor. macOS draws the menu bar on every display but AX reports one
+// copy (on whichever display it considers main), so a window on another
+// monitor would get pointed at the wrong screen. Items sitting in some
+// other monitor's top band, outside the window, are shifted by the
+// difference of the two monitors' origins.
+func menuBarOnWindowMonitor(a Adapter, items []TextItem, wb Rect) []TextItem {
+	mons, err := a.ListMonitors()
+	if err != nil || len(mons) < 2 {
+		return items
+	}
+	cx, cy := wb.X+wb.W/2, wb.Y+wb.H/2
+	var home *Monitor
+	for i := range mons {
+		m := &mons[i]
+		if cx >= m.X && cx < m.X+m.Width && cy >= m.Y && cy < m.Y+m.Height {
+			home = m
+		}
+	}
+	if home == nil {
+		return items
+	}
+	const band = 40 // menu bar height incl. notch displays
+	for i, it := range items {
+		b := it.Bounds
+		if it.Role != "menuitem" || (b.X < wb.X+wb.W && b.X+b.W > wb.X && b.Y < wb.Y+wb.H && b.Y+b.H > wb.Y) {
+			continue
+		}
+		for _, m := range mons {
+			if m.ID == home.ID || b.Y < m.Y || b.Y >= m.Y+band || b.X < m.X || b.X >= m.X+m.Width {
+				continue
+			}
+			items[i].Bounds.X += home.X - m.X
+			items[i].Bounds.Y += home.Y - m.Y
+			break
+		}
+	}
+	return items
 }
 
 func norm(s string) string {

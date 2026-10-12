@@ -239,7 +239,7 @@ func (a *Adapter) CursorPosition() (int, int, error) {
 //
 // The other platforms already pace: the Linux adapter passes `--delay 12` to
 // xdotool. This matches that behaviour, a little faster.
-const typeKeyDelay = 5 * time.Millisecond
+const typeKeyDelay = 20 * time.Millisecond
 
 func (a *Adapter) TypeText(text string) error {
 	units := windows.StringToUTF16(text)
