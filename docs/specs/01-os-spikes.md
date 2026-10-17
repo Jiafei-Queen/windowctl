@@ -2,8 +2,9 @@
 
 > Part of the [windowctl OpenSpec capability set](./README.md).
 
-- **Status:** Partial (macOS Supported, Windows Supported, Linux best-effort,
-  Wayland limited per README platform table)
+- **Status:** Partial (macOS Supported, Windows Supported, Linux X11
+  best-effort, KDE Plasma Wayland Supported, other Wayland
+  compositors unsupported)
 - **Source:** §7, §7.1, §10.3
 - **Summary:** Per-OS tracer bullet proving that the chosen native API on
   each supported platform can enumerate windows and monitors, move/resize a
@@ -106,11 +107,27 @@ contract is real.
 - **THEN** it can list windows and move/focus the matched window using X11
   as the primary backend, with `wmctrl` / `xdotool` available as fallback
 
-### Scenario: Wayland session
+### Scenario: Wayland session — KDE Plasma
 
-- **WHEN** the Linux adapter detects a Wayland session
-- **THEN** behavior is best-effort only; failures must produce clear error
-  messages rather than silent no-ops
+- **WHEN** the Linux adapter detects a Wayland session with KWin
+- **THEN** the adapter delegates to the KDE backend: window management
+  goes through KWin's D-Bus scripting interface (script injection via
+  `org.kde.kwin.Scripting` with a `callDBus` callback to a bus name the
+  process owns), screenshots through `spectacle`, and input through
+  `ydotool`
+- **AND** the dispatch happens at runtime based on
+  `XDG_SESSION_TYPE` / `WAYLAND_DISPLAY`, with the X11 path unchanged
+  for X11 sessions
+- **AND** missing external tools produce actionable errors naming the
+  tool and how to install it (per §8.2), never silent no-ops
+
+### Scenario: Wayland session — other compositors
+
+- **WHEN** the Linux adapter detects a Wayland session on a compositor
+  without an implementation (wlroots family, GNOME, ...)
+- **THEN** backend-dependent operations fail with a descriptive error
+  naming the detected compositor and which ones are implemented,
+  rather than silent no-ops or cryptic D-Bus failures
 
 ## Requirement: Adapter isolation
 

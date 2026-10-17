@@ -6,7 +6,7 @@
 // rather than binding Xlib. Input goes through xdotool; capture tries
 // ImageMagick `import` first (ubiquitous) and falls back to `scrot`.
 // Wayland is best-effort exactly as it is for wmctrl.
-package linux
+package x11
 
 import (
 	"fmt"

@@ -187,7 +187,7 @@ Exit codes: `0` if every entry succeeded, `1` if any entry failed, `2` for inval
 
 ## Desktop automation (screenshot + input)
 
-Beyond arranging windows, `windowctl` can **see** the screen and **drive** the mouse/keyboard — enough to automate a UI end to end: screenshot → read the image → click/type → screenshot to confirm. All of it is native (CoreGraphics/CGEvent on macOS, Win32 on Windows, `xdotool`/`import` on Linux).
+Beyond arranging windows, `windowctl` can **see** the screen and **drive** the mouse/keyboard — enough to automate a UI end to end: screenshot → read the image → click/type → screenshot to confirm. All of it is native (CoreGraphics/CGEvent on macOS, Win32 on Windows, `xdotool`/`import` on Linux X11, KWin scripting + `spectacle`/`ydotool` on Linux Wayland).
 
 ### Screenshot
 
@@ -291,8 +291,17 @@ When multiple windows match, the first one is used.
 |----------|-------------|----------------------------------|
 | macOS    | Supported   | CoreGraphics + Accessibility API |
 | Windows  | Supported   | Win32 (`user32.dll`)             |
-| Linux    | Best-effort | `wmctrl` / `xrandr`              |
-| Wayland  | Limited     | Best-effort only                 |
+| Linux X11 | Best-effort | `wmctrl` / `xrandr`             |
+| Linux Wayland (KDE) | Supported | KWin D-Bus scripting + `spectacle` + `ydotool` |
+| Wayland (Sway/Hyprland) | Not yet | Planned (wlroots backend)   |
+| Wayland (GNOME/other) | Not supported | No compositor window-management API |
+
+On Linux Wayland the backend is selected at runtime from the session
+environment: KDE sessions use KWin's D-Bus scripting interface for
+window management, `spectacle` for screenshots, and `ydotool`
+(uinput) for mouse/keyboard input. Screenshots and input need those
+tools installed; missing ones produce an actionable error. See
+[docs/specs/17-wayland-adapter.md](docs/specs/17-wayland-adapter.md) for the spec.
 
 ## Building
 
@@ -306,6 +315,7 @@ task snapshot           # Cross-compile + stage npm binaries (no publish)
 task smoke-darwin       # macOS real-window smoke (TextEdit)
 task smoke-darwin-apps  # macOS per-app Move/Focus matrix (Chrome, Safari, VSCode, ...)
 task smoke-windows      # Windows real-window smoke (Notepad)
+task smoke-wayland      # Wayland/KDE real-window smoke (local-only; needs a KDE Wayland session + spectacle)
 task release -- 0.x.0   # Local release: bump → build → publish 6 npm pkgs → tag → GH release
 ```
 

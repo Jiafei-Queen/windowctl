@@ -52,6 +52,11 @@ tasks:
     cmds:
       - pwsh ./scripts/smoke-windows.ps1
 
+  smoke-wayland:
+    desc: Run the Wayland (KDE Plasma) real-window smoke test — local-only, requires a KDE Wayland session with spectacle installed
+    cmds:
+      - bash ./scripts/smoke-wayland.sh
+
   npm:bump:
     desc: "Sync npm package versions across main + 5 platform sub-packages. Usage: task npm:bump -- 0.2.0"
     cmds:

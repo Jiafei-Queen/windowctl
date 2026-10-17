@@ -1,0 +1,128 @@
+//go:build linux
+
+package kde
+
+import (
+	"strings"
+	"testing"
+)
+
+// TestScriptPreamble pins the preamble contract: the tag lands as a JS
+// number, the report helper targets this process's bus name and
+// interface, and the payload is tag-prefixed so late callbacks can be
+// discarded.
+func TestScriptPreamble(t *testing.T) {
+	p := scriptPreamble(42)
+	if !strings.Contains(p, "var __wctl_tag = 42;") {
+		t.Errorf("preamble missing numeric tag:\n%s", p)
+	}
+	if !strings.Contains(p, `"`+reportIface+`"`) {
+		t.Errorf("preamble missing report interface:\n%s", p)
+	}
+	if !strings.Contains(p, "__wctl_tag + \"|\" + JSON.stringify(obj)") {
+		t.Errorf("preamble missing tag-prefixed payload:\n%s", p)
+	}
+	if !strings.Contains(p, `"`+reportPath+`"`) {
+		t.Errorf("preamble missing report path:\n%s", p)
+	}
+}
+
+// TestJsStringEscaping covers the JSON→JS literal contract, including
+// the U+2028/U+2029 escape that JSON allows raw but JS string literals
+// (pre-ES2019) do not. Window titles come straight from the compositor
+// and can contain anything, so injection safety is load-bearing.
+func TestJsStringEscaping(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{`plain`, `"plain"`},
+		{`with "quotes"`, `"with \"quotes\""`},
+		{"back\\slash", `"back\\slash"`},
+		{"new\nline", `"new\nline"`},
+		{"tab\tchar", `"tab\tchar"`},
+		{"{uuid-with-braces}", `"{uuid-with-braces}"`},
+		{"unicode ✓ ünïcödé", `"unicode ✓ ünïcödé"`},
+		// The JS-incompatible raw separators must be escaped.
+		{"a\u2028b", `"a\u2028b"`},
+		{"a\u2029b", `"a\u2029b"`},
+	}
+	for _, tc := range cases {
+		if got := jsString(tc.in); got != tc.want {
+			t.Errorf("jsString(%q) = %s, want %s", tc.in, got, tc.want)
+		}
+	}
+}
+
+// TestMoveBodyInjection verifies the Move script assembles the
+// parameters the JS body reads as top-level vars — the var block and
+// the body must agree on names, and the UUID must be a JS string.
+func TestMoveBodyInjection(t *testing.T) {
+	body := "var __wctl_uuid = " + jsString("{abc}") + ";\nvar __wctl_x = 10;\nvar __wctl_y = 20;\nvar __wctl_w = 30;\nvar __wctl_h = 40;\n" + moveBody
+	for _, want := range []string{
+		`var __wctl_uuid = "{abc}";`,
+		"var __wctl_x = 10;",
+		"var __wctl_y = 20;",
+		"var __wctl_w = 30;",
+		"var __wctl_h = 40;",
+		// The verified spelling: whole-literal frameGeometry assignment.
+		"w.frameGeometry = { x: __wctl_x, y: __wctl_y, width: __wctl_w, height: __wctl_h };",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("assembled move script missing %q:\n%s", want, body)
+		}
+	}
+}
+
+// TestListWindowsBodyShape guards the enumeration contract: z-order
+// source, the normalWindow filter, and the braced-UUID ID form.
+func TestListWindowsBodyShape(t *testing.T) {
+	for _, want := range []string{
+		"workspace.stackingOrder.length",
+		"!w.normalWindow || w.deleted || w.outline",
+		"id: String(w.internalId)",
+		"title: w.caption",
+		"app: w.resourceClass",
+		"var g = w.frameGeometry;",
+	} {
+		if !strings.Contains(listWindowsBody, want) {
+			t.Errorf("listWindowsBody missing %q", want)
+		}
+	}
+}
+
+// TestFocusBodyShape pins the focus mechanism (writable
+// workspace.activeWindow).
+func TestFocusBodyShape(t *testing.T) {
+	if !strings.Contains(focusBody, "workspace.activeWindow = w;") {
+		t.Errorf("focusBody missing activeWindow assignment:\n%s", focusBody)
+	}
+}
+
+// TestMonitorsBodyShape pins the monitor fields, the name-based output
+// identity comparison, and the Primary/Active/Focused semantics.
+func TestMonitorsBodyShape(t *testing.T) {
+	for _, want := range []string{
+		"workspace.screens.length",
+		"s.devicePixelRatio",
+		"s.name === primaryName",
+		"workspace.cursorPos",
+		"activeW.frameGeometry",
+	} {
+		if !strings.Contains(monitorsBody, want) {
+			t.Errorf("monitorsBody missing %q", want)
+		}
+	}
+}
+
+func TestReportBusNameIsPerProcess(t *testing.T) {
+	name := reportBusName()
+	if !strings.HasPrefix(name, reportIface+".") {
+		t.Fatalf("report bus name %q must start with %q", name, reportIface+".")
+	}
+	// The PID suffix is what keeps concurrent windowctl processes from
+	// fighting over the bus name.
+	if strings.Count(name, ".") < 3 {
+		t.Fatalf("report bus name %q must carry a pid suffix", name)
+	}
+}

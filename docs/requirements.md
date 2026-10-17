@@ -21,7 +21,7 @@ This document explicitly excludes:
 
 - GUI components
 - Background daemon or hotkey system
-- Full Wayland support
+- Wayland support beyond KDE Plasma (wlroots compositors and GNOME are out of scope for now)
 
 ---
 
@@ -79,7 +79,7 @@ Developers who want to script workspace setups, restore layouts, or integrate wi
 - No GUI
 - No background daemon
 - No hotkeys or global shortcuts
-- No full Wayland support (best-effort only)
+- No Wayland support beyond KDE Plasma (best-effort elsewhere)
 
 ---
 
@@ -349,7 +349,7 @@ func Focus(match Match) error
 | macOS    | Use CoreGraphics for listing; Accessibility API for move/resize |
 | Windows  | Use Win32 APIs (`user32.dll`) via `syscall` or `x/sys/windows` |
 | Linux    | Use X11 as primary; `wmctrl`/`xdotool` as fallback           |
-| Wayland  | Best-effort; no full support required for v0.1               |
+| Wayland  | Supported on KDE Plasma (KWin D-Bus scripting); wlroots compositors planned |
 
 ### 7.1 CGO Strategy
 
@@ -373,6 +373,7 @@ func Focus(match Match) error
 - macOS: Screen Recording is a separate TCC permission gating `screenshot`; checked/requested via `windowctl permissions --screen [--status]`, same clear-error contract
 - Windows: Operations requiring elevated privileges must fail gracefully with a descriptive error
 - Linux: Behavior depends on display server; no special handling required beyond clear error messages
+- Linux Wayland (KDE): external tools (`spectacle` for capture, `ydotool` for input) are required for the automation surface; missing tools must produce actionable errors, never silent no-ops
 
 ### 8.3 Portability
 
@@ -487,7 +488,7 @@ func Focus(match Match) error
 | OI-01 | Behavior when multiple windows match a filter      | TBD         |
 | OI-02 | Layout YAML schema definition                      | TBD         |
 | OI-03 | Vertical split zone notation                       | Not planned |
-| OI-04 | Wayland support scope                              | Best-effort |
+| OI-04 | Wayland support scope                              | KDE implemented; wlroots planned |
 | OI-05 | npm binary download vs. bundling strategy          | TBD         |
 
 ---

@@ -1,6 +1,6 @@
 //go:build linux
 
-package linux
+package x11
 
 import (
 	"image"
