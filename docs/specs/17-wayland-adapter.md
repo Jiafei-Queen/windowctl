@@ -133,7 +133,7 @@
   rendering, keycode mapping) and run in the normal CI matrix
 - **AND** real-window validation runs only on a developer's KDE
   Wayland session via `task smoke-wayland` (launch → detect → move →
-  settle → assert bounds → focus → verify active window via KWin →
+  settle → assert bounds → focus → verify via stacking order →
   monitors → screenshot), because CI runners have no compositor and
   Docker is forbidden for window tests (§10.3)
 
