@@ -52,13 +52,17 @@ go build -o windowctl ./cmd/windowctl || fail 'go build failed'
 ./windowctl windows list --json >/dev/null || fail 'windows list failed'
 
 # 4. Launch a real application. `konsole -e sleep` gives an empty,
-#    instantly-recognizable window with a stable title.
-konsole -e sleep 120 &
+#    instantly-recognizable window; the unique workdir makes its title
+#    unique per run so repeated invocations (or leftover windows from
+#    manual testing) can never match the wrong window.
+SMOKE_DIR=$(mktemp -d /tmp/wctl-smoke-XXXXXX)
+SMOKE_TITLE="$(basename "$SMOKE_DIR") : sleep"
+konsole --workdir "$SMOKE_DIR" -e sleep 120 &
 SMOKE_PID=$!
 cleanup() {
   kill "$SMOKE_PID" >/dev/null 2>&1 || true
   wait "$SMOKE_PID" 2>/dev/null || true
-  rm -f /tmp/wctl-shot.png /tmp/wctl-list-after.json /tmp/wctl-move.err
+  rm -rf "$SMOKE_DIR" /tmp/wctl-shot.png /tmp/wctl-list-after.json /tmp/wctl-move.err
 }
 trap cleanup EXIT
 
@@ -66,18 +70,18 @@ trap cleanup EXIT
 deadline=$(($(date +%s) + 10))
 detected=''
 while [ "$(date +%s)" -lt "$deadline" ]; do
-  detected=$(./windowctl windows list --json 2>/dev/null | python3 -c '
+  detected=$(./windowctl windows list --json 2>/dev/null | python3 -c "
 import json, sys
 ws = json.load(sys.stdin) or []
-hits = [w for w in ws if (w.get("Title") or "").startswith("windowctl : sleep")]
-print(hits[0]["ID"] if hits else "")
-' || true)
+hits = [w for w in ws if (w.get('Title') or '').startswith('$SMOKE_TITLE')]
+print(hits[0]['ID'] if hits else '')
+" || true)
   if [ -n "$detected" ]; then
     break
   fi
   sleep 0.3
 done
-[ -n "$detected" ] || fail "smoke window not detected within 10s (final list: $(./windowctl windows list | head -5))"
+[ -n "$detected" ] || fail "smoke window not detected within 10s (title '$SMOKE_TITLE'; final list: $(./windowctl windows list | head -5))"
 echo "Detected smoke window ID=$detected"
 
 # 6. Move. Wayland applies geometry asynchronously, so settle before
@@ -89,12 +93,13 @@ sleep 1
 sleep 1.5
 
 ./windowctl windows list --json > /tmp/wctl-list-after.json
-WCTL_TOL="$WCTL_WAYLAND_TOLERANCE" python3 - <<'PY'
+WCTL_TOL="$WCTL_WAYLAND_TOLERANCE" WCTL_SMOKE_TITLE="$SMOKE_TITLE" python3 - <<'PY'
 import json, os, sys
 tol = int(os.environ['WCTL_TOL'])
+title = os.environ['WCTL_SMOKE_TITLE']
 with open('/tmp/wctl-list-after.json') as f:
     ws = json.load(f) or []
-hit = next((w for w in ws if (w.get('Title') or '').startswith('windowctl : sleep')), None)
+hit = next((w for w in ws if (w.get('Title') or '').startswith(title)), None)
 if hit is None:
     print('smoke window vanished after move', file=sys.stderr)
     sys.exit(1)
@@ -108,15 +113,32 @@ if bad:
 print(f"Move applied within tolerance: bounds={b} (want {expected}, tol {tol}px)")
 PY
 
-# 7. Focus, then verify via KWin's own queryWindowInfo that the smoke
-#    window really is the active one (the CLI has no "active window"
-#    query of its own; qdbus is the ground truth here).
+# 7. Focus, then verify the target is the topmost window in stacking
+#    order (activating a window raises it on KDE). This deliberately
+#    does NOT use KWin's queryWindowInfo — that call is an interactive
+#    click-to-select picker that hijacks the cursor and returns
+#    UserCancel or whatever window the pointer happens to be over, so
+#    it is useless (and disruptive) in a script. `windows list`
+#    preserves KWin's stacking order, frontmost last.
 ./windowctl focus --title "$SMOKE_TITLE" || fail 'focus failed'
-active_caption=$(qdbus6 org.kde.KWin /KWin org.kde.KWin.queryWindowInfo 2>/dev/null | grep '^caption:' || true)
-case "$active_caption" in
-  *sleep*) echo "Focus applied: active window is '$active_caption'" ;;
-  *) fail "focus did not stick: active window is '$active_caption'" ;;
-esac
+sleep 1
+WCTL_SMOKE_TITLE="$SMOKE_TITLE" python3 - <<'PY'
+import json, os, subprocess, sys
+title = os.environ['WCTL_SMOKE_TITLE']
+ws = json.loads(subprocess.run(
+    ['./windowctl', 'windows', 'list', '--json'],
+    capture_output=True, text=True, check=True).stdout) or []
+hits = [w for w in ws if (w.get('Title') or '').startswith(title)]
+if not hits:
+    print('smoke window vanished after focus', file=sys.stderr)
+    sys.exit(1)
+target = hits[0]['ID']
+topmost = ws[-1]['ID'] if ws else None
+if topmost != target:
+    print(f"focus did not raise the target: topmost is {topmost}, target is {target}", file=sys.stderr)
+    sys.exit(1)
+print("Focus applied: target window is topmost in stacking order")
+PY
 
 # 8. Monitors: at least one output, primary flagged.
 mon_count=$(./windowctl monitors list --json 2>/dev/null | python3 -c '
