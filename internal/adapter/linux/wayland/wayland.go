@@ -5,8 +5,10 @@
 // Wayland deliberately gives clients no protocol for managing other
 // clients' windows, so this adapter dispatches per compositor: window
 // enumeration and geometry control go through each compositor's own
-// channel (KWin's D-Bus scripting interface for KDE; swaymsg / hyprctl
-// for wlroots compositors — the latter are a follow-up). Input
+// channel (KWin's D-Bus scripting interface for KDE; GNOME via a
+// resident Shell extension and wlroots compositors via swaymsg /
+// hyprctl are planned follow-ups, in that order — see
+// docs/wayland/design.md §8). Input
 // injection (mouse/keyboard) is compositor-independent via ydotool's
 // uinput virtual device, so it lives here as shared code.
 //

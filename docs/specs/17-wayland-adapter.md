@@ -2,12 +2,13 @@
 
 > Part of the [windowctl OpenSpec capability set](./README.md).
 
-- **Status:** Partial (KDE Plasma implemented; wlroots compositors planned)
+- **Status:** Partial (KDE Plasma implemented; GNOME planned next, then wlroots compositors)
 - **Source:** §7, §7.1, §8.2, §10.3, OI-04
 - **Summary:** Linux Wayland support for the window/monitor adapter via a
   runtime-dispatched, per-compositor backend architecture. KDE Plasma
   (KWin) is implemented through KWin's D-Bus scripting interface;
-  Sway/Hyprland (wlroots) are a planned follow-up. Design details and
+  GNOME (Mutter, via a resident Shell extension) is the next planned
+  backend, followed by Sway/Hyprland (wlroots). Design details and
   the verified KWin mechanics are documented in the adapter package
   comments (`internal/adapter/linux/wayland/`).
 
@@ -114,7 +115,19 @@
   detected compositor and which ones are implemented — never silent
   no-ops or cryptic D-Bus failures
 
-### Scenario: wlroots compositors (planned)
+### Scenario: GNOME (planned next)
+
+- **WHEN** the session is Wayland on GNOME
+- **THEN** the compositor is recognized but no backend exists yet; the
+  same clear unsupported error applies
+- **AND** the planned implementation is a resident GNOME Shell
+  extension (locally installed, enabled via
+  `org.gnome.Shell.Extensions`) exposing a D-Bus service for
+  ListWindows / Move / Focus / ListMonitors / CursorPosition, with
+  capture through the Shell's internal screenshot API — install and
+  enable flow must be spike-verified before the design is finalized
+
+### Scenario: wlroots compositors (planned, after GNOME)
 
 - **WHEN** the session is Sway or Hyprland
 - **THEN** the compositor is recognized but no backend exists yet; the
@@ -146,5 +159,5 @@
 | `task smoke-wayland` | KDE real-window smoke (local-only; needs KDE Wayland + spectacle) |
 | `task lint` | `go vet` across the module, including the new packages |
 
-> A wlroots smoke script (Sway/Hyprland) is not covered yet — it
-> lands with the P2 backend.
+> Wayland smoke scripts for GNOME and wlroots (Sway/Hyprland) are not
+> covered yet — each lands with its backend (GNOME first, then wlroots).

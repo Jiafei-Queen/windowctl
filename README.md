@@ -293,14 +293,17 @@ When multiple windows match, the first one is used.
 | Windows  | Supported   | Win32 (`user32.dll`)             |
 | Linux X11 | Best-effort | `wmctrl` / `xrandr`             |
 | Linux Wayland (KDE) | Supported | KWin D-Bus scripting + `spectacle` + `ydotool` |
-| Wayland (Sway/Hyprland) | Not yet | Planned (wlroots backend)   |
-| Wayland (GNOME/other) | Not supported | No compositor window-management API |
+| Wayland (GNOME) | Not yet | Planned next (GNOME Shell extension backend — see docs/wayland/design.md §8) |
+| Wayland (Sway/Hyprland) | Not yet | Planned after GNOME (wlroots backend)   |
+| Other Wayland compositors | Not supported | No compositor window-management API |
 
 On Linux Wayland the backend is selected at runtime from the session
 environment: KDE sessions use KWin's D-Bus scripting interface for
 window management, `spectacle` for screenshots, and `ydotool`
 (uinput) for mouse/keyboard input. Screenshots and input need those
-tools installed; missing ones produce an actionable error. See
+tools installed; missing ones produce an actionable error. GNOME
+Wayland support is planned next (via a resident GNOME Shell
+extension), followed by Sway/Hyprland. See
 [docs/specs/17-wayland-adapter.md](docs/specs/17-wayland-adapter.md) for the spec.
 
 ## Building

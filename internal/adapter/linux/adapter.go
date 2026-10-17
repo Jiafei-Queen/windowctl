@@ -6,7 +6,8 @@
 // session environment and returns the X11 adapter (shelling out to
 // wmctrl/xdotool, the historical implementation now living in x11/) or
 // the Wayland adapter (wayland/, per-compositor backends; currently KDE
-// Plasma/KWin is implemented, wlroots compositors are a follow-up).
+// Plasma/KWin is implemented, GNOME next, then the wlroots compositors
+// — see docs/wayland/design.md §8).
 //
 // See docs/specs/17-wayland-adapter.md for the spec.
 package linux

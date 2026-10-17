@@ -124,7 +124,9 @@ contract is real.
 ### Scenario: Wayland session — other compositors
 
 - **WHEN** the Linux adapter detects a Wayland session on a compositor
-  without an implementation (wlroots family, GNOME, ...)
+  without an implementation (GNOME and the wlroots family are
+  recognized; GNOME is the next planned backend, per the roadmap in
+  docs/wayland/design.md §8)
 - **THEN** backend-dependent operations fail with a descriptive error
   naming the detected compositor and which ones are implemented,
   rather than silent no-ops or cryptic D-Bus failures

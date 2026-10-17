@@ -21,7 +21,7 @@ This document explicitly excludes:
 
 - GUI components
 - Background daemon or hotkey system
-- Wayland support beyond KDE Plasma (wlroots compositors and GNOME are out of scope for now)
+- Wayland support beyond KDE Plasma (GNOME and wlroots compositors are out of scope for now; GNOME is the next planned backend, per docs/wayland/design.md §8)
 
 ---
 
@@ -349,7 +349,7 @@ func Focus(match Match) error
 | macOS    | Use CoreGraphics for listing; Accessibility API for move/resize |
 | Windows  | Use Win32 APIs (`user32.dll`) via `syscall` or `x/sys/windows` |
 | Linux    | Use X11 as primary; `wmctrl`/`xdotool` as fallback           |
-| Wayland  | Supported on KDE Plasma (KWin D-Bus scripting); wlroots compositors planned |
+| Wayland  | Supported on KDE Plasma (KWin D-Bus scripting); GNOME next, then wlroots compositors |
 
 ### 7.1 CGO Strategy
 
@@ -488,7 +488,7 @@ func Focus(match Match) error
 | OI-01 | Behavior when multiple windows match a filter      | TBD         |
 | OI-02 | Layout YAML schema definition                      | TBD         |
 | OI-03 | Vertical split zone notation                       | Not planned |
-| OI-04 | Wayland support scope                              | KDE implemented; wlroots planned |
+| OI-04 | Wayland support scope                              | KDE implemented; GNOME next, then wlroots |
 | OI-05 | npm binary download vs. bundling strategy          | TBD         |
 
 ---
