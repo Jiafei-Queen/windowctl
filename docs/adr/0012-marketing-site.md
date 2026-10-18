@@ -71,6 +71,7 @@ Owner constraints, taken from how the existing sites were built and reviewed:
   without a version bump, and a version bump does not force a site deploy.
 
 ## Spike S9 — Cloudflare path
-See `spikes/s9_site_deploy.sh`: verify the API token, resolve the `deemwar.com`
-zone, confirm `winctl.deemwar.com` is unclaimed, confirm `wrangler` is present,
-and build the site. PASS = all green before any live resource is created.
+The spike script (`spikes/s9_site_deploy.sh`, removed with the site) verified
+the API token, resolved the `deemwar.com` zone, confirmed
+`winctl.deemwar.com` was unclaimed, confirmed `wrangler` was present, and
+built the site. PASS = all green before any live resource was created.
