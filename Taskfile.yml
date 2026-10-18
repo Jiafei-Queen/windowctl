@@ -67,6 +67,11 @@ tasks:
     cmds:
       - bash ./scripts/smoke-wayland-sway.sh
 
+  smoke-wayland-hyprland:
+    desc: Run the Wayland (Hyprland) real-window smoke test — local Hyprland session, or a VM via WCTL_SMOKE_SSH=user@host
+    cmds:
+      - bash ./scripts/smoke-wayland-hyprland.sh
+
   npm:bump:
     desc: "Sync npm package versions across main + 5 platform sub-packages. Usage: task npm:bump -- 0.2.0"
     cmds:

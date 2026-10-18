@@ -37,7 +37,15 @@ func ydotool(args ...string) error {
 	return nil
 }
 
+// MouseMove positions the OS cursor. Backends with an exact cursor
+// channel (pointerMover — Hyprland's movecursor dispatcher) take
+// precedence: ydotool's --absolute emulation is distorted by libinput
+// pointer acceleration on default configs. Backends without one use
+// ydotool --absolute directly (dpr=1 setups — see pointerMover docs).
 func (a *Adapter) MouseMove(x, y int) error {
+	if pm, ok := a.backend.(pointerMover); ok {
+		return pm.MoveCursor(x, y)
+	}
 	if err := ydotoolMissing(); err != nil {
 		return err
 	}

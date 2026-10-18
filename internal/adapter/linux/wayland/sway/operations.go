@@ -55,20 +55,20 @@ type winProps struct {
 // the IPC reports null for everything that is not a window leaf
 // (outputs, workspaces, split containers).
 type node struct {
-	ID       int64      `json:"id"`
-	Type     string     `json:"type"`
-	Name     *string    `json:"name"`
-	AppID    *string    `json:"app_id"`
-	Shell    *string    `json:"shell"`
-	PID      *int       `json:"pid"`
-	Rect     geo        `json:"rect"`
-	DecoRect geo        `json:"deco_rect"`
-	Floating *string    `json:"floating"`
-	Focused  bool       `json:"focused"`
-	Visible  bool       `json:"visible"`
-	WinProps *winProps  `json:"window_properties"`
-	Nodes    []*node    `json:"nodes"`
-	FloatingNodes []*node `json:"floating_nodes"`
+	ID            int64     `json:"id"`
+	Type          string    `json:"type"`
+	Name          *string   `json:"name"`
+	AppID         *string   `json:"app_id"`
+	Shell         *string   `json:"shell"`
+	PID           *int      `json:"pid"`
+	Rect          geo       `json:"rect"`
+	DecoRect      geo       `json:"deco_rect"`
+	Floating      *string   `json:"floating"`
+	Focused       bool      `json:"focused"`
+	Visible       bool      `json:"visible"`
+	WinProps      *winProps `json:"window_properties"`
+	Nodes         []*node   `json:"nodes"`
+	FloatingNodes []*node   `json:"floating_nodes"`
 }
 
 // tree is the get_tree root (type "root").

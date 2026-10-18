@@ -150,15 +150,31 @@ echo "Detected smoke window ID=$detected (app_id=$SMOKE_APP_ID)"
 
 # --- 5. move, settle, verify bounds ------------------------------------
 # The window is tiled at this point, so this exercises the
-# float-enable + deco-compensation Move path end to end.
-wctl move --app "$SMOKE_APP_ID" --x 700 --y 400 --w 500 --h 600 \
+# float-enable + deco-compensation Move path end to end. The target is
+# computed from the first reported monitor so it lands fully on-screen
+# on any display size/scale.
+read -r MOVE_X MOVE_Y MOVE_W MOVE_H MOUSE_X MOUSE_Y < <(
+  wctl monitors list --json | python3 -c '
+import json, sys
+ms = json.load(sys.stdin) or []
+m = ms[0]
+w = min(500, m["Width"] - 100)
+h = min(600, m["Height"] - 100)
+print(m["X"] + (m["Width"] - w) // 2, m["Y"] + (m["Height"] - h) // 2, w, h,
+      m["X"] + m["Width"] // 2, m["Y"] + m["Height"] // 2)
+') || fail 'monitors list failed'
+echo "Move target: ${MOVE_X},${MOVE_Y} ${MOVE_W}x${MOVE_H} (from monitors list)"
+
+wctl move --app "$SMOKE_APP_ID" --x "$MOVE_X" --y "$MOVE_Y" --w "$MOVE_W" --h "$MOVE_H" \
   2>/tmp/wctl-move.err || fail "move failed: $(cat /tmp/wctl-move.err)"
 sleep 0.5
 
 wctl windows list --json > /tmp/wctl-list-after.json
-WCTL_TOL="$WCTL_WAYLAND_TOLERANCE" python3 - <<'PY'
-import json, sys
-tol = int(__import__('os').environ['WCTL_TOL'])
+WCTL_TOL="$WCTL_WAYLAND_TOLERANCE" MOVE_X="$MOVE_X" MOVE_Y="$MOVE_Y" MOVE_W="$MOVE_W" MOVE_H="$MOVE_H" python3 - <<'PY'
+import json, sys, os
+tol = int(os.environ['WCTL_TOL'])
+expected = {'X': int(os.environ['MOVE_X']), 'Y': int(os.environ['MOVE_Y']),
+            'Width': int(os.environ['MOVE_W']), 'Height': int(os.environ['MOVE_H'])}
 with open('/tmp/wctl-list-after.json') as f:
     ws = json.load(f) or []
 hit = next((w for w in ws if (w.get('App') or '') == 'wctl-smoke'), None)
@@ -166,7 +182,6 @@ if hit is None:
     print('smoke window vanished after move', file=sys.stderr)
     sys.exit(1)
 b = hit.get('Bounds') or {}
-expected = {'X': 700, 'Y': 400, 'Width': 500, 'Height': 600}
 diffs = {k: abs(b.get(k, 0) - expected[k]) for k in expected}
 bad = {k: d for k, d in diffs.items() if d > tol}
 if bad:
@@ -229,16 +244,17 @@ print(len(ms))
 echo "Monitors listed: $mon_count"
 
 # --- 8. screenshot: 1 image pixel == 1 coordinate point ----------------
-wctl screenshot --x 700 --y 400 --w 500 --h 600 --out /tmp/wctl-shot.png \
+wctl screenshot --x "$MOVE_X" --y "$MOVE_Y" --w "$MOVE_W" --h "$MOVE_H" --out /tmp/wctl-shot.png \
   || fail 'screenshot failed'
-python3 - <<'PY'
-import struct, sys
+MOVE_W="$MOVE_W" MOVE_H="$MOVE_H" python3 - <<'PY'
+import struct, sys, os
+w_want, h_want = int(os.environ['MOVE_W']), int(os.environ['MOVE_H'])
 with open('/tmp/wctl-shot.png', 'rb') as f:
     data = f.read(33)
 assert data[:8] == b'\x89PNG\r\n\x1a\n', 'not a PNG'
 w, h = struct.unpack('>II', data[16:24])
-if (w, h) != (500, 600):
-    print(f'screenshot size {w}x{h}, want 500x600 (point normalization broken?)', file=sys.stderr)
+if (w, h) != (w_want, h_want):
+    print(f'screenshot size {w}x{h}, want {w_want}x{h_want} (point normalization broken?)', file=sys.stderr)
     sys.exit(1)
 print(f"Screenshot normalized: {w}x{h} = 1 image pixel per coordinate point")
 PY

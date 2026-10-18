@@ -21,6 +21,7 @@ import (
 	"os/exec"
 
 	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/gnome"
+	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/hyprland"
 	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/kde"
 	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/sway"
 	"github.com/muthuishere/windowctl/internal/core"
@@ -39,6 +40,19 @@ type Backend interface {
 	Focus(windowID string) error
 	CursorPosition() (int, int, error)
 	CaptureRect(bounds core.Rect, outPath string) error
+}
+
+// pointerMover is implemented by backends that can position the OS
+// cursor through their compositor's own channel. That is the
+// preferred MouseMove primitive: ydotool's --absolute emulation (an
+// INT32_MIN relative slam + offset, per ydotool Client/tool_mousemove.c)
+// runs through libinput pointer acceleration, which on default
+// configs distorts the landing (2× on Hyprland 0.55.2, and
+// speed-dependent on plain relative moves — see
+// hyprland-mechanism.md). Backends without such a channel (sway, and
+// the dpr=1 KDE/GNOME setups) keep using ydotool.
+type pointerMover interface {
+	MoveCursor(x, y int) error
 }
 
 // Adapter implements core.Adapter for Wayland sessions. backend is nil
@@ -62,13 +76,15 @@ func New() *Adapter {
 		return &Adapter{compositor: name, backend: gnome.New()}
 	case compositorSway:
 		return &Adapter{compositor: name, backend: sway.New()}
+	case compositorHyprland:
+		return &Adapter{compositor: name, backend: hyprland.New()}
 	default:
 		return &Adapter{compositor: name}
 	}
 }
 
 func (a *Adapter) unsupported() error {
-	return fmt.Errorf("no Wayland backend for compositor %q (implemented: KDE Plasma/KWin, GNOME/Mutter, sway): %w",
+	return fmt.Errorf("no Wayland backend for compositor %q (implemented: KDE Plasma/KWin, GNOME/Mutter, sway, Hyprland): %w",
 		a.compositor, core.ErrNotImplemented)
 }
 
