@@ -21,7 +21,7 @@ This document explicitly excludes:
 
 - GUI components
 - Background daemon or hotkey system
-- Wayland support beyond KDE Plasma (GNOME and wlroots compositors are out of scope for now; GNOME is the next planned backend, per docs/wayland/design.md §8)
+- Wayland support beyond KDE Plasma, GNOME, sway, and Hyprland (other compositors are out of scope)
 
 ---
 

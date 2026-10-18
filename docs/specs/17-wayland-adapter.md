@@ -232,11 +232,33 @@
 - **THEN** unit tests cover the environment-only pure functions
   (session detection, compositor detection, script-template
   rendering, keycode mapping) and run in the normal CI matrix
-- **AND** real-window validation runs only on a developer's KDE
-  Wayland session via `task smoke-wayland` (launch → detect → move →
-  settle → assert bounds → focus → verify via stacking order →
-  monitors → screenshot), because CI runners have no compositor and
-  Docker is forbidden for window tests (§10.3)
+- **AND** fake-bin integration tests replay recorded IPC payloads
+  through a stubbed `swaymsg`/`hyprctl`/`grim` on PATH (sway and
+  Hyprland backends), exercising the full query → parse → command →
+  verdict pipeline — including the verdict-to-error mapping on
+  non-zero swaymsg exits — with no compositor and no sockets, so
+  they run in CI
+- **AND** the GNOME backend's embedded Shell extension is gated in
+  CI too: `node --check` on `extension.js`, and a Go test asserting
+  the `metadata.json` schema (uuid matches the install flow,
+  unlock-dialog session mode, shell-version declared)
+- **AND** real-window validation runs only on a developer's
+  compositor session via the per-backend `task smoke-wayland*`
+  scripts (launch → detect → move → settle → assert bounds →
+  focus → verify → monitors → screenshot), because CI runners have
+  no compositor and Docker is forbidden for window tests (§10.3)
+
+### Test matrix
+
+| Layer | KDE | GNOME | sway | Hyprland |
+|-------|-----|-------|------|----------|
+| Unit: parser fixtures (happy + malformed payloads) | ✅ script shape/escaping | ✅ report parsing | ✅ tree/outputs/verdicts | ✅ clients/monitors/cursorpos |
+| Unit: detection & dispatch | ✅ session/compositor detection, unsupported error contract | | | |
+| Unit: input (ydotool argv, pointerMover precedence) | ✅ shared, fake-seam | | | |
+| Unit: capture (resample, grim geometry, roundtrip) | ✅ shared `wayland/capture` | | | |
+| Integration: fake-bin full pipeline (CI-runnable) | ❌ (D-Bus scripting needs KWin) | ❌ (D-Bus service needs the Shell) | ✅ swaymsg/grim stubs | ✅ hyprctl/grim stubs |
+| Extension gating | — | ✅ `node --check` + metadata schema | — | — |
+| Real-window smoke (local/VM only) | ✅ verified KWin 6.7.4 | ✅ verified GNOME 48 | ✅ verified sway 1.10.1 | ✅ verified Hyprland 0.55.2 |
 
 ## Tasks
 
@@ -244,15 +266,19 @@
 |------|---------|
 | `task build` | Builds the CLI; the Wayland adapter compiles into the linux binary |
 | `task test` | Runs the detection/template/keycode/fixture unit tests in CI |
+| `task test:cover` | Runs all tests with coverage (45% statement floor) |
 | `task smoke-wayland` | KDE real-window smoke (local-only; needs KDE Wayland + spectacle) |
 | `task smoke-wayland-gnome` | GNOME real-window smoke (local or VM via `WCTL_SMOKE_SSH`) |
 | `task smoke-wayland-sway` | sway real-window smoke (local or VM via `WCTL_SMOKE_SSH`) |
 | `task smoke-wayland-hyprland` | Hyprland real-window smoke (local or VM via `WCTL_SMOKE_SSH`) |
-| `task lint` | `go vet` across the module, including the new packages |
+| `task lint` | `go vet` + shellcheck on the smoke scripts + `node --check` on the GNOME extension |
 
 > Smoke scripts do not run in CI (no compositor on runners, §10.3
 > forbids Docker for window tests). Each backend's smoke lands with
 > it; all four share the launch → list → move → settle → assert →
-> focus → monitors → screenshot body, and the GNOME/sway/Hyprland
+> focus → monitors → screenshot body (the shared build/push dispatch
+> lives in `scripts/smoke-lib.sh`), and the GNOME/sway/Hyprland
 > scripts support the `WCTL_SMOKE_SSH` remote-push mode used for VM
-> validation.
+> validation. The sway/Hyprland fake-bin integration tests and the
+> GNOME extension gates close the CI gap for everything that does not
+> need a live compositor.

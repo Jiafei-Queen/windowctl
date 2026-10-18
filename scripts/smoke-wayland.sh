@@ -13,10 +13,10 @@
 # `task smoke-wayland`.
 #
 # The script refuses to run (exit 2) on non-Wayland or non-KDE
-# sessions — the smoke contract is specifically the KDE backend. On
-# GNOME and wlroots compositors (Sway/Hyprland) the backend is not
-# implemented yet; each lands with a sibling smoke script (GNOME
-# first, per docs/wayland/design.md §8).
+# sessions — the smoke contract is specifically the KDE backend.
+# Sibling scripts cover the other backends: smoke-wayland-gnome.sh,
+# smoke-wayland-sway.sh, smoke-wayland-hyprland.sh
+# (GNOME/sway/Hyprland).
 #
 # Tolerances: Wayland geometry changes are asynchronous (the client
 # must acknowledge the compositor's configure event), so `move` is
