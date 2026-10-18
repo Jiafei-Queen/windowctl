@@ -187,7 +187,7 @@ Exit codes: `0` if every entry succeeded, `1` if any entry failed, `2` for inval
 
 ## Desktop automation (screenshot + input)
 
-Beyond arranging windows, `windowctl` can **see** the screen and **drive** the mouse/keyboard — enough to automate a UI end to end: screenshot → read the image → click/type → screenshot to confirm. All of it is native (CoreGraphics/CGEvent on macOS, Win32 on Windows, `xdotool`/`import` on Linux X11, KWin scripting + `spectacle`/`ydotool` on Linux Wayland).
+Beyond arranging windows, `windowctl` can **see** the screen and **drive** the mouse/keyboard — enough to automate a UI end to end: screenshot → read the image → click/type → screenshot to confirm. It uses CoreGraphics/CGEvent on macOS, Win32 on Windows, `xdotool`/`import` on Linux X11, and compositor-specific backends for KDE, GNOME, sway, and Hyprland on Linux Wayland.
 
 ### Screenshot
 
@@ -299,11 +299,12 @@ When multiple windows match, the first one is used.
 | Other Wayland compositors | Not supported | No compositor window-management API |
 
 On Linux Wayland the backend is selected at runtime from the session
-environment (KDE, GNOME, sway, or Hyprland). Screenshots and input
-need the backend's external tools installed (`spectacle` on KDE,
-`grim` on sway/Hyprland, `ydotool` for mouse/keyboard everywhere);
-missing ones produce an actionable error. The GNOME backend installs
-its Shell extension automatically on first use, which takes effect
+environment (KDE, GNOME, sway, or Hyprland). KDE screenshots use
+`spectacle`; sway and Hyprland use `grim`; keyboard and button input
+uses `ydotool` (sway and Hyprland use compositor IPC to position the
+cursor). Missing required tools produce actionable errors. The GNOME
+backend captures screenshots through GNOME Shell and installs its
+Shell extension automatically on first use; the extension takes effect
 after one relogin. See
 [docs/specs/17-wayland-adapter.md](docs/specs/17-wayland-adapter.md) for the spec.
 
