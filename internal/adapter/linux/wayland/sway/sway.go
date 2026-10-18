@@ -57,8 +57,12 @@ func runQuery(treeType string) (string, error) {
 }
 
 // runCommand runs `swaymsg [criteria] args...` — a command, not a
-// query. swaymsg exits non-zero when the command fails and prints a
-// structured JSON result; the caller inspects the parsed verdicts.
+// query. swaymsg prints a structured JSON verdict and exits non-zero
+// when the command fails, so the verdicts are evaluated even on a
+// non-zero exit: a criteria miss ("No matching node.") must surface as
+// core.ErrNoMatch, not a bare exit-status error (caught by the
+// fake-bin integration test — the pre-integration code returned the
+// raw exec error before parsing anything).
 func runCommand(args ...string) error {
 	if _, err := exec.LookPath("swaymsg"); err != nil {
 		return fmt.Errorf("swaymsg not found on PATH — required for window management on sway. "+
@@ -68,18 +72,22 @@ func runCommand(args ...string) error {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sway: swaymsg %s: %w (stderr: %s)",
-			strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	verdicts, err := parseVerdicts(stdout.String())
-	if err != nil {
-		return fmt.Errorf("sway: swaymsg %s: %w", strings.Join(args, " "), err)
-	}
-	for _, v := range verdicts {
-		if !v.Success {
-			return commandError(args, v.Error)
+	runErr := cmd.Run()
+
+	verdicts, verdictErr := parseVerdicts(stdout.String())
+	if verdictErr == nil && len(verdicts) > 0 {
+		for _, v := range verdicts {
+			if !v.Success {
+				return commandError(args, v.Error)
+			}
 		}
+	}
+	if runErr != nil {
+		return fmt.Errorf("sway: swaymsg %s: %w (stderr: %s)",
+			strings.Join(args, " "), runErr, strings.TrimSpace(stderr.String()))
+	}
+	if verdictErr != nil {
+		return fmt.Errorf("sway: swaymsg %s: %w", strings.Join(args, " "), verdictErr)
 	}
 	return nil
 }

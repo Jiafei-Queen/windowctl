@@ -7,8 +7,9 @@
 // enumeration and geometry control go through each compositor's own
 // channel — KWin's D-Bus scripting interface for KDE (kde/), a
 // resident GNOME Shell extension exposing a D-Bus service for
-// GNOME/Mutter (gnome/), and the swaymsg IPC CLI for sway (sway/).
-// Hyprland (hyprctl) follows — see docs/wayland/design.md §8. Input
+// GNOME/Mutter (gnome/), the swaymsg IPC CLI for sway (sway/), and
+// hyprctl for Hyprland (hyprland/) — see docs/wayland/design.md §8.
+// Input
 // injection (mouse/keyboard) is compositor-independent via ydotool's
 // uinput virtual device, so it lives here as shared code.
 //
@@ -18,6 +19,7 @@ package wayland
 import (
 	"fmt"
 	"image"
+	"os"
 	"os/exec"
 
 	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/gnome"
@@ -49,8 +51,8 @@ type Backend interface {
 // runs through libinput pointer acceleration, which on default
 // configs distorts the landing (2× on Hyprland 0.55.2, and
 // speed-dependent on plain relative moves — see
-// hyprland-mechanism.md). Backends without such a channel (sway, and
-// the dpr=1 KDE/GNOME setups) keep using ydotool.
+// hyprland-mechanism.md). Backends without such a channel (KDE/GNOME
+// at dpr=1) keep using ydotool.
 type pointerMover interface {
 	MoveCursor(x, y int) error
 }
@@ -84,8 +86,15 @@ func New() *Adapter {
 }
 
 func (a *Adapter) unsupported() error {
+	// Name the detected compositor. When nothing was recognized, the
+	// raw desktop hint is the closest signal the user has — spec 17's
+	// "descriptive error naming the detected compositor" contract.
+	name := a.compositor
+	if name == compositorUnknown {
+		name = os.Getenv("XDG_CURRENT_DESKTOP")
+	}
 	return fmt.Errorf("no Wayland backend for compositor %q (implemented: KDE Plasma/KWin, GNOME/Mutter, sway, Hyprland): %w",
-		a.compositor, core.ErrNotImplemented)
+		name, core.ErrNotImplemented)
 }
 
 func (a *Adapter) ListWindows() ([]core.Window, error) {
