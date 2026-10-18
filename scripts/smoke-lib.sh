@@ -23,11 +23,11 @@ fail() {
 #   (otherwise)     build ./windowctl from the repo root and run here.
 smoke_dispatch() {
   if [ "${1:-}" = "--remote" ]; then
-    WCTL=/tmp/wctl-smoke-bin
-    WCTL_IS_REMOTE=1
+    export WCTL=/tmp/wctl-smoke-bin
+    export WCTL_IS_REMOTE=1
     return
   fi
-  cd "$(dirname "$0")/.."
+  cd "$(dirname "$0")/.." || fail 'cannot cd to the repo root'
   if [ -n "${WCTL_SMOKE_SSH:-}" ]; then
     echo '== Building linux binary and pushing to the SSH target =='
     go build -o /tmp/wctl-smoke-bin ./cmd/windowctl || fail 'go build failed'
@@ -42,6 +42,6 @@ smoke_dispatch() {
     ssh -o BatchMode=yes "$WCTL_SMOKE_SSH" "bash /tmp/$(basename "$0") --remote"
     exit $?
   fi
-  WCTL=./windowctl
+  export WCTL=./windowctl
   go build -o windowctl ./cmd/windowctl || fail 'go build failed'
 }

@@ -129,15 +129,14 @@ echo "Detected smoke window ID=$detected (app_id=$SMOKE_APP_ID)"
 # float-enable + deco-compensation Move path end to end. The target is
 # computed from the first reported monitor so it lands fully on-screen
 # on any display size/scale.
-read -r MOVE_X MOVE_Y MOVE_W MOVE_H MOUSE_X MOUSE_Y < <(
+read -r MOVE_X MOVE_Y MOVE_W MOVE_H < <(
   wctl monitors list --json | python3 -c '
 import json, sys
 ms = json.load(sys.stdin) or []
 m = ms[0]
 w = min(500, m["Width"] - 100)
 h = min(600, m["Height"] - 100)
-print(m["X"] + (m["Width"] - w) // 2, m["Y"] + (m["Height"] - h) // 2, w, h,
-      m["X"] + m["Width"] // 2, m["Y"] + m["Height"] // 2)
+print(m["X"] + (m["Width"] - w) // 2, m["Y"] + (m["Height"] - h) // 2, w, h)
 ') || fail 'monitors list failed'
 echo "Move target: ${MOVE_X},${MOVE_Y} ${MOVE_W}x${MOVE_H} (from monitors list)"
 

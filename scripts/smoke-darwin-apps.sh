@@ -33,7 +33,7 @@
 
 set -uo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 echo '== windowctl macOS per-app smoke matrix =='
 
