@@ -323,8 +323,17 @@ task smoke-wayland      # Wayland/KDE real-window smoke (local-only; needs a KDE
 task smoke-wayland-gnome    # Wayland/GNOME real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
 task smoke-wayland-sway     # Wayland/sway real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
 task smoke-wayland-hyprland # Wayland/Hyprland real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
-task release -- 0.x.0   # Local release: bump → build → publish 6 npm pkgs → tag → GH release
 ```
+
+### Releasing
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+CI builds the five targets on a macOS runner and attaches the archives to
+a GitHub release. Upstream's local `task release` path publishes to npm
+and is not used here.
 
 ## Go library
 

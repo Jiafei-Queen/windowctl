@@ -6,8 +6,10 @@
   bumps versions, cross-compiles five targets via goreleaser, stages
   binaries into `npm/platforms/<os-arch>/bin/`, publishes all 6 npm
   packages, commits the bump, tags, pushes, and creates the matching
-  GitHub release. No GitHub Actions release path — everything runs
-  from the developer's Mac.
+  GitHub release. The tag-triggered workflow
+  (`.github/workflows/release.yaml`) builds the same five targets and
+  attaches the archives to a GitHub release; this fork uses the workflow
+  and does not publish to npm.
 - **Source:** §9.1, §9.2
 - **Summary:** Cross-compile, checksum, and publish GitHub releases
   AND npm packages for macOS, Windows, and Linux on both `amd64` and
@@ -65,7 +67,7 @@
 - **THEN** SHA-256 checksums are generated for every archive and
   recorded in `dist/checksums.txt`
 
-## Requirement: Local-only publish (no GitHub Actions)
+## Requirement: Local publish path
 
 ### Scenario: One-shot release
 
@@ -81,9 +83,10 @@
   → `git tag v<version>` → `git push origin main` →
   `git push origin v<version>` → `gh release create v<version>`
   with the tarballs, zips, and checksums
-- **AND** no GitHub Actions secrets, no `NPM_TOKEN` in CI, no Actions
-  workflow involvement — auth is whatever `npm whoami` and
-  `gh auth status` already trust on the developer's Mac
+- **AND** this path needs no GitHub Actions secrets and no `NPM_TOKEN`
+  in CI — auth is whatever `npm whoami` and `gh auth status` already
+  trust on the developer's machine. The tag-triggered workflow
+  (`.github/workflows/release.yaml`) is the CI alternative
 
 ## Tasks
 
