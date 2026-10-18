@@ -15,8 +15,7 @@
 #       builds the linux binary locally, pushes it plus this script to
 #       the target's /tmp and runs the same body there with the
 #       graphical session's environment injected (the SSH login shell
-#       itself is a tty session — see docs/wayland/gnome-mechanism.md
-#       §6). Handy for the VM test environment.
+#       itself is a tty session). Handy for the VM test environment.
 #
 # Unlike the KDE smoke this needs no external tools on the target: the
 # GNOME backend screenshots via the in-process extension API and needs
@@ -45,7 +44,7 @@ smoke_dispatch "${1:-}"
 echo '== windowctl Wayland (GNOME) smoke test =='
 
 # windowctl runs from an SSH shell see a tty session, so the graphical
-# session env must be injected (gnome-mechanism.md §6).
+# session env must be injected.
 wctl() {
   if [ -n "${WCTL_IS_REMOTE:-}" ]; then
     env XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=GNOME \
@@ -147,7 +146,7 @@ import json, os, subprocess, sys
 
 # The bash wctl() helper is unreachable from python; rebuild the env
 # injection here (remote runs see a tty session without the graphical
-# session env — gnome-mechanism.md §6).
+# session env).
 def wctl(*args):
     env = dict(os.environ)
     binary = '/tmp/wctl-smoke-bin' if os.environ.get('WCTL_IS_REMOTE') else './windowctl'

@@ -3,8 +3,8 @@
 > Part of the [windowctl OpenSpec capability set](./README.md).
 
 - **Status:** Partial (macOS Supported, Windows Supported, Linux X11
-  best-effort, KDE Plasma Wayland Supported, other Wayland
-  compositors unsupported)
+  best-effort, KDE Plasma / GNOME / sway / Hyprland Wayland supported,
+  other Wayland compositors unsupported)
 - **Source:** §7, §7.1, §10.3
 - **Summary:** Per-OS tracer bullet proving that the chosen native API on
   each supported platform can enumerate windows and monitors, move/resize a

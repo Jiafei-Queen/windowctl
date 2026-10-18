@@ -33,6 +33,8 @@ Real-window smoke tests (run automatically by `.github/workflows/ci.yaml` via `t
 - `task smoke-darwin-apps` — per-app Move/Focus matrix on macOS for real third-party apps (Chrome, VSCode, etc.); override the set with `APPS="Google Chrome"`. Local-only, not part of CI.
 - `task smoke-windows` — builds CLI, launches Notepad, verifies `windows list` detects it and `move` succeeds.
 - `task smoke-wayland` — KDE Wayland real-window smoke (local-only): launches `konsole -e sleep`, detects it, moves (settle-then-assert within `WCTL_WAYLAND_TOLERANCE`, default 50px), focuses (verified via stacking order — the target must be topmost), lists monitors, and screenshots a region asserting the point-normalized size. Not in CI — runners have no compositor (spec 10 forbids Docker for window tests). Requires a KDE Plasma Wayland session and `spectacle` installed.
+- `task smoke-wayland-gnome` — GNOME Wayland real-window smoke (local-only): launches `gnome-calculator` and runs the same body; capture goes through the auto-installed Shell extension, so the target needs no extra tools. Runs locally, or against a VM via `WCTL_SMOKE_SSH=user@host`.
+- `task smoke-wayland-sway` / `task smoke-wayland-hyprland` — wlroots real-window smokes (local-only, or a VM via `WCTL_SMOKE_SSH=user@host`): launch `foot` with a stable app-id/class, then run the same body through `swaymsg` / `hyprctl` IPC and `grim` capture. Targets need `foot` + `grim`; `ydotool` is not exercised (no default `ydotoold` setup).
 
 Module is Go 1.24, dependencies `golang.org/x/sys`, `golang.org/x/image` (font rasterization + HiDPI image scaling), and `github.com/godbus/dbus/v5` (KWin scripting callback channel — the KDE Wayland backend; pure Go, no CGO, no transitive deps).
 

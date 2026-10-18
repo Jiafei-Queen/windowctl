@@ -1,7 +1,7 @@
 {
   "uuid": "windowctl@local",
   "name": "windowctl",
-  "description": "Resident D-Bus service exposing window management to the windowctl CLI (docs/wayland/design.md §8 P2).",
+  "description": "Resident D-Bus service exposing window management to the windowctl CLI.",
   "shell-version": ["48"],
   "session-modes": ["user", "unlock-dialog"],
   "version": 1

@@ -257,5 +257,7 @@ to expect:
   non-US layout the produced glyph for punctuation chords may differ
   (letters, digits, named keys are stable).
 - **Linux** needs `xdotool` (input) and `import`/`scrot` (capture)
-  installed, and is X11-first (Wayland best-effort), mirroring the
-  existing `move`/`focus` story.
+  installed under X11. Under Wayland input uses `ydotool` and capture
+  uses `spectacle` (KDE) or `grim` (sway/Hyprland), or the Shell
+  extension on GNOME; missing tools fail with an install hint,
+  mirroring the `move`/`focus` story.

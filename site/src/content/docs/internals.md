@@ -21,7 +21,7 @@ description: Layers, platform backends, and the spec-before-code process.
 | macOS    | CoreGraphics + Accessibility API (CGO, no AppleScript, no private SPI) |
 | Windows  | Win32 via `user32.dll`                             |
 | Linux    | `wmctrl` + `xrandr`; native X11 planned            |
-| Wayland  | Best-effort                                        |
+| Wayland  | Per-compositor backends: KWin D-Bus scripting (KDE), Shell extension (GNOME), `swaymsg` (sway), `hyprctl` (Hyprland) |
 
 ## Process
 

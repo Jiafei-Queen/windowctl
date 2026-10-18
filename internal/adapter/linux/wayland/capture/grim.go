@@ -24,7 +24,7 @@ import (
 //     bounds.W × bounds.H — the 1px == 1pt normalization invariant
 //     (same direction as the kde/gnome pipelines).
 //
-// Verified quirk (sway-mechanism.md §9): grim does NOT clamp the rect
+// Verified quirk: grim does NOT clamp the rect
 // to the desktop — an out-of-screen rect still yields a full-size
 // image (with empty content outside the screen). Caller bounds always
 // come from window rects, which lie within the desktop, so no
@@ -34,7 +34,7 @@ import (
 // grim is a Wayland client: it needs WAYLAND_DISPLAY +
 // XDG_RUNTIME_DIR from the inherited environment (the variables the
 // compositor session provides; an SSH session must inject them
-// alongside the compositor's IPC variable — sway-mechanism.md §2).
+// alongside the compositor's IPC variable).
 func GrimCapture(bounds core.Rect, outPath string) error {
 	if _, err := exec.LookPath("grim"); err != nil {
 		return fmt.Errorf("grim not found on PATH — required for screenshots on this Wayland compositor. "+

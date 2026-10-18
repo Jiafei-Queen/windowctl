@@ -214,7 +214,7 @@ func parseID(windowID string) (int64, error) {
 
 // ListWindows enumerates application windows. Bounds are the tree's
 // `rect` — client area + border, excluding the SSD title bar, in
-// absolute screen points (see sway-mechanism.md §6).
+// absolute screen points.
 func (b *Backend) ListWindows() ([]core.Window, error) {
 	payload, err := runQuery("get_tree")
 	if err != nil {
@@ -289,7 +289,7 @@ func (b *Backend) ListMonitors() ([]core.Monitor, error) {
 			Height:  os[i].Rect.Height,
 			Primary: i == primaryOut,
 			Focused: i == focusedOut,
-			Active:  false, // sway IPC has no cursor query (sway-mechanism.md §10)
+			Active:  false, // sway IPC has no cursor query
 		})
 	}
 	return ms, nil
@@ -350,9 +350,8 @@ func contains(o output, n *node) bool {
 }
 
 // CursorPosition is unavailable on sway: the IPC exposes no cursor
-// query at all (get_tree/get_outputs/get_seats verified —
-// sway-mechanism.md §10). ydotool injects input but cannot read the
-// pointer back.
+// query at all (get_tree/get_outputs/get_seats verified). ydotool
+// injects input but cannot read the pointer back.
 func (b *Backend) CursorPosition() (int, int, error) {
 	return 0, 0, fmt.Errorf("sway: cursor position unavailable (sway IPC exposes no cursor query): %w",
 		core.ErrNotImplemented)
@@ -365,9 +364,9 @@ func (b *Backend) CursorPosition() (int, int, error) {
 // semantics); they are floated first — the decided adapter policy,
 // documented as changing the user's tiling layout.
 //
-// Geometry compensation (sway-mechanism.md §6): sway's move/resize
-// commands target the container *including* the SSD title bar, while
-// the reported rect excludes it. With deco_h = deco_rect.height:
+// Geometry compensation: sway's move/resize commands target the
+// container *including* the SSD title bar, while the reported rect
+// excludes it. With deco_h = deco_rect.height:
 //
 //	resize set width W px height (H + deco_h) px  → rect.w ≈ W, rect.h ≈ H
 //	move absolute position X px (Y - deco_h) px   → rect.x = X, rect.y = Y

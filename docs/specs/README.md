@@ -34,7 +34,7 @@ higher-level capability is built. Everything else builds on it.
 | 14 | [`input-automation`](./14-input-automation.md) | Implemented | FR-INP-01, FR-INP-02, FR-INP-03, §11 |
 | 15 | [`remote-control`](./15-remote-control.md) | Implemented | FR-RMT-01, §8.2, §11 |
 | 16 | [`draw`](./16-draw.md) | Implemented (mac/win) | FR-DRW-01, §8, §11 |
-| 17 | [`wayland-adapter`](./17-wayland-adapter.md) | Partial (KDE implemented) | §7, §7.1, §8.2, §10.3, OI-04 |
+| 17 | [`wayland-adapter`](./17-wayland-adapter.md) | Implemented | §7, §7.1, §8.2, §10.3, OI-04 |
 
 **Status legend:** `Implemented` · `Partial` · `Planned` · `Not planned`.
 

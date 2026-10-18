@@ -8,10 +8,9 @@
 // channel — KWin's D-Bus scripting interface for KDE (kde/), a
 // resident GNOME Shell extension exposing a D-Bus service for
 // GNOME/Mutter (gnome/), the swaymsg IPC CLI for sway (sway/), and
-// hyprctl for Hyprland (hyprland/) — see docs/wayland/design.md §8.
-// Input
-// injection (mouse/keyboard) is compositor-independent via ydotool's
-// uinput virtual device, so it lives here as shared code.
+// hyprctl for Hyprland (hyprland/). Input injection (mouse/keyboard)
+// is compositor-independent via ydotool's uinput virtual device, so it
+// lives here as shared code.
 //
 // See docs/specs/17-wayland-adapter.md for the spec.
 package wayland
@@ -50,9 +49,8 @@ type Backend interface {
 // INT32_MIN relative slam + offset, per ydotool Client/tool_mousemove.c)
 // runs through libinput pointer acceleration, which on default
 // configs distorts the landing (2× on Hyprland 0.55.2, and
-// speed-dependent on plain relative moves — see
-// hyprland-mechanism.md). Backends without such a channel (KDE/GNOME
-// at dpr=1) keep using ydotool.
+// speed-dependent on plain relative moves). Backends without such a
+// channel (KDE/GNOME at dpr=1) keep using ydotool.
 type pointerMover interface {
 	MoveCursor(x, y int) error
 }

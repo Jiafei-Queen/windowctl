@@ -118,10 +118,12 @@ recipe knowledge; `windowctl` owns the OS-specific window operations.
   with `WCTL_AX_DEBUG=1` and surface the per-PID AX dump from
   stderr — that names the match rule (title / geometry /
   single-window) the bridge tried and failed on.
-- **Linux X11 / Wayland is best-effort.** On Linux the adapter
-  shells out to `wmctrl` + `xrandr`; Wayland is unsupported beyond
-  what `wmctrl` can fake. Don't promise pixel-exact placement on
-  those.
+- **Linux: X11 is best-effort, Wayland goes through compositor
+  backends.** Under X11 the adapter shells out to `wmctrl` + `xrandr`;
+  under Wayland it dispatches per compositor — KDE Plasma, GNOME
+  (installs its Shell extension on first use, one relogin), sway, and
+  Hyprland give exact geometry, anything else fails with a clear
+  unsupported error. Don't promise pixel-exact placement on X11.
 - **`windows list` is now filtered server-side.** Only real
   application windows (macOS `kCGWindowLayer == 0`) are returned —
   ~5–15 entries in a typical session. Menubar widgets, the Dock,

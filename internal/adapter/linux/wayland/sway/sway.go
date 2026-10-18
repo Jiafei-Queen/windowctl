@@ -10,9 +10,8 @@
 // D-Bus, no resident helper, unlike the kde/gnome backends.
 //
 // The exact command spellings are load-bearing and were verified
-// against a live sway 1.10.1 — see docs/wayland/sway-mechanism.md. In
-// particular the geometry commands take container coordinates that
-// include the SSD title bar, while the get_tree `rect` this package
+// against a live sway 1.10.1. In particular the geometry commands take
+// container coordinates that include the SSD title bar, while the get_tree `rect` this package
 // reports excludes it; Move compensates with deco_rect.height.
 package sway
 

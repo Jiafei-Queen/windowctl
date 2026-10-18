@@ -9,9 +9,9 @@ import (
 	"github.com/muthuishere/windowctl/internal/core"
 )
 
-// clientsFixture mirrors the live `hyprctl -j clients` shape recorded
-// in docs/wayland/hyprland-mechanism.md (Hyprland 0.55.2, scale-2
-// monitor): one native Wayland client, one XWayland client, one
+// clientsFixture mirrors the live `hyprctl -j clients` shape
+// (Hyprland 0.55.2, scale-2 monitor): one native Wayland client, one
+// XWayland client, one
 // unmapped special-workspace client that must be filtered out.
 const clientsFixture = `[
   {

@@ -16,14 +16,13 @@
 #       builds the linux binary locally, pushes it plus this script to
 #       the target's /tmp and runs the same body there with the
 #       graphical session's environment injected (the SSH login shell
-#       itself is a tty session — see docs/wayland/hyprland-mechanism.md).
-#       Handy for the VM test environment.
+#       itself is a tty session). Handy for the VM test environment.
 #
 # Target prerequisites: foot (test app), grim (screenshots). The test
 # app is identified by foot's stable class (follows --app-id), not by
 # title (foot titles are overwritten by the shell's OSC escape).
 #
-# Hyprland specifics exercised here (hyprland-mechanism.md):
+# Hyprland specifics exercised here:
 #   - the smoke window starts tiled, so Move's auto-togglefloating
 #     path (the decided tiled-window policy) is what gets tested;
 #   - exact dispatches land at/size precisely (no title-bar
@@ -171,7 +170,7 @@ import json, os, subprocess, sys
 
 # The bash wctl() helper is unreachable from python; rebuild the env
 # injection here (remote runs see a tty session without the graphical
-# session env — hyprland-mechanism.md).
+# session env).
 def wctl(*args):
     env = dict(os.environ)
     binary = '/tmp/wctl-smoke-bin' if os.environ.get('WCTL_IS_REMOTE') else './windowctl'

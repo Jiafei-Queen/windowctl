@@ -349,7 +349,7 @@ func Focus(match Match) error
 | macOS    | Use CoreGraphics for listing; Accessibility API for move/resize |
 | Windows  | Use Win32 APIs (`user32.dll`) via `syscall` or `x/sys/windows` |
 | Linux    | Use X11 as primary; `wmctrl`/`xdotool` as fallback           |
-| Wayland  | Supported on KDE Plasma (KWin D-Bus scripting); GNOME next, then wlroots compositors |
+| Wayland  | Supported on KDE Plasma, GNOME, sway, and Hyprland (per-compositor backends); other compositors are out of scope |
 
 ### 7.1 CGO Strategy
 

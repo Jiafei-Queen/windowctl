@@ -12,7 +12,7 @@ import (
 //
 // The capture runs through grim (wlr-screencopy), shared with the
 // other wlroots backends — see capture.GrimCapture for the pipeline
-// and sway-mechanism.md §9 for the verified geometry semantics.
+// and geometry semantics.
 func (b *Backend) CaptureRect(bounds core.Rect, outPath string) error {
 	return capture.GrimCapture(bounds, outPath)
 }

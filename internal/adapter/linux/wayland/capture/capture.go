@@ -5,8 +5,7 @@
 // coordinate points (1 image pixel == 1 coordinate point), so an agent
 // can feed pixel coordinates read off the screenshot straight into
 // MouseClick. Compositors hand out device pixels (logical × scale
-// factor), so every backend crops/resamples through the helpers here —
-// docs/wayland/design.md §5.
+// factor), so every backend crops/resamples through the helpers here.
 package capture
 
 import (
