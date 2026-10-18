@@ -6,7 +6,7 @@ name: Release
 #
 # ONE-TIME MANUAL SETUP (cannot be done from here — npmjs.com UI only):
 # for each of the 6 packages, Settings → Publishing access → Trusted publisher:
-#   Repository: <owner>/windowctl (this repo)
+#   Repository: Jiafei-Queen/windowctl
 #   Workflow:   release.yaml
 # Packages: @muthuishere/windowctl and @muthuishere/windowctl-{darwin-arm64,
 # darwin-x64,linux-arm64,linux-x64,windows-x64}.
@@ -89,13 +89,13 @@ jobs:
       # No token anywhere: npm exchanges the Actions OIDC token for short-lived
       # publish rights against the trusted publisher configured on npmjs.com.
       #
-      # Provenance is disabled deliberately. npm enables it by default under
-      # trusted publishing, but generating a provenance attestation requires a
-      # PUBLIC source repository, and this repo is private — leaving it on makes
-      # every publish fail. Flip this to true if the repo is ever made public.
+      # Provenance is on: this fork is a public repository, so npm can generate
+      # and attach a signed attestation linking each published package to this
+      # workflow run. Attestations require a public source repository, so this
+      # has to go back to false if the repo is ever made private.
       - name: Publish to npm (OIDC)
         env:
-          NPM_CONFIG_PROVENANCE: false
+          NPM_CONFIG_PROVENANCE: true
         run: |
           set -e
           for dir in \

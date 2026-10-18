@@ -76,7 +76,9 @@ snapshot:
 
 release:
   github:
-    owner: muthuishere
+    # The release workflow runs goreleaser with --skip=publish and creates
+    # the GitHub release itself; this target only matters if that changes.
+    owner: Jiafei-Queen
     name: windowctl
   draft: false
   prerelease: auto
