@@ -28,7 +28,9 @@ func ydotoolMissing() error {
 
 // ydotool runs the ydotool CLI, wrapping combined output into the
 // error so daemon-not-running / permission failures are actionable.
-func ydotool(args ...string) error {
+// It is a package var so tests can capture argv without touching the
+// real CLI (the presence check stays on the real PATH).
+var ydotool = func(args ...string) error {
 	cmd := exec.Command("ydotool", args...)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("ydotool %s: %v: %s",
@@ -38,10 +40,11 @@ func ydotool(args ...string) error {
 }
 
 // MouseMove positions the OS cursor. Backends with an exact cursor
-// channel (pointerMover — Hyprland's movecursor dispatcher) take
-// precedence: ydotool's --absolute emulation is distorted by libinput
-// pointer acceleration on default configs. Backends without one use
-// ydotool --absolute directly (dpr=1 setups — see pointerMover docs).
+// channel (pointerMover — sway's seat cursor set, Hyprland's movecursor
+// dispatcher) take precedence: ydotool's --absolute emulation is
+// distorted by libinput pointer acceleration on default configs.
+// Backends without one use ydotool --absolute directly (dpr=1
+// setups — see pointerMover docs).
 func (a *Adapter) MouseMove(x, y int) error {
 	if pm, ok := a.backend.(pointerMover); ok {
 		return pm.MoveCursor(x, y)

@@ -49,7 +49,7 @@ func GrimCapture(bounds core.Rect, outPath string) error {
 	_ = tmp.Close()
 	defer os.Remove(tmpPath)
 
-	geom := fmt.Sprintf("%d,%d %dx%d", bounds.X, bounds.Y, bounds.W, bounds.H)
+	geom := grimGeom(bounds)
 	cmd := exec.Command("grim", "-g", geom, tmpPath)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("grim capture %q: %v: %s", geom, err, out)
@@ -59,10 +59,25 @@ func GrimCapture(bounds core.Rect, outPath string) error {
 	if err != nil {
 		return err
 	}
-	if src.Bounds().Dx() == bounds.W && src.Bounds().Dy() == bounds.H {
+	if !needResample(src.Bounds().Dx(), src.Bounds().Dy(), bounds.W, bounds.H) {
 		// Already exactly the requested point size — copy without
 		// re-encoding.
 		return CopyFile(tmpPath, outPath)
 	}
 	return WritePNG(ResampleToPoints(src, bounds.W, bounds.H), outPath)
+}
+
+// grimGeom formats bounds as grim's -g geometry string: "X,Y WxH"
+// (logical points, the same coordinate space the window queries
+// report). Extracted for unit testing.
+func grimGeom(bounds core.Rect) string {
+	return fmt.Sprintf("%d,%d %dx%d", bounds.X, bounds.Y, bounds.W, bounds.H)
+}
+
+// needResample reports whether the captured image is not already
+// exactly the requested point size — i.e. grim wrote device pixels
+// (scale ≠ 1) and the HiDPI downsample must run. Extracted for unit
+// testing.
+func needResample(srcW, srcH, wantW, wantH int) bool {
+	return srcW != wantW || srcH != wantH
 }

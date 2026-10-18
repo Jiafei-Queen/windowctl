@@ -295,6 +295,19 @@ func (b *Backend) ListMonitors() ([]core.Monitor, error) {
 	return ms, nil
 }
 
+// activeOutputs filters get_outputs results to active outputs —
+// disabled/inactive outputs must not reach the public layer. Kept as
+// a pure function so tests exercise the real filter.
+func activeOutputs(os []output) []output {
+	active := os[:0]
+	for _, o := range os {
+		if o.Active {
+			active = append(active, o)
+		}
+	}
+	return active
+}
+
 // outputs returns the active outputs from get_outputs.
 func (b *Backend) outputs() ([]output, error) {
 	payload, err := runQuery("get_outputs")
@@ -305,13 +318,7 @@ func (b *Backend) outputs() ([]output, error) {
 	if err != nil {
 		return nil, err
 	}
-	active := os[:0]
-	for _, o := range os {
-		if o.Active {
-			active = append(active, o)
-		}
-	}
-	return active, nil
+	return activeOutputs(os), nil
 }
 
 // focusedWindow returns the single tree node with focused=true, or

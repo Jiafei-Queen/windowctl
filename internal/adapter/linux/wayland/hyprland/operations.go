@@ -83,18 +83,10 @@ func (c *client) isWindow() bool {
 	return c.Mapped && !c.Hidden && c.Class != ""
 }
 
-// ListWindows enumerates application windows in Hyprland's own list
-// order (most-recently-focused first — focusHistoryID order).
-// Bounds are the client's logical box: at + size.
-func (b *Backend) ListWindows() ([]core.Window, error) {
-	payload, err := runQuery("clients")
-	if err != nil {
-		return nil, err
-	}
-	cs, err := parseClients(payload)
-	if err != nil {
-		return nil, err
-	}
+// windowsFromClients maps parsed clients to the public Window list —
+// the same filter + mapping ListWindows uses. Kept as a pure function
+// so tests exercise the real mapping.
+func windowsFromClients(cs []client) []core.Window {
 	ws := make([]core.Window, 0, len(cs))
 	for i := range cs {
 		c := &cs[i]
@@ -109,7 +101,22 @@ func (b *Backend) ListWindows() ([]core.Window, error) {
 			Bounds: core.Rect{X: c.At[0], Y: c.At[1], W: c.Size[0], H: c.Size[1]},
 		})
 	}
-	return ws, nil
+	return ws
+}
+
+// ListWindows enumerates application windows in Hyprland's own list
+// order (most-recently-focused first — focusHistoryID order).
+// Bounds are the client's logical box: at + size.
+func (b *Backend) ListWindows() ([]core.Window, error) {
+	payload, err := runQuery("clients")
+	if err != nil {
+		return nil, err
+	}
+	cs, err := parseClients(payload)
+	if err != nil {
+		return nil, err
+	}
+	return windowsFromClients(cs), nil
 }
 
 // findClient resolves a window ID (Hyprland's address string, e.g.
@@ -201,21 +208,14 @@ func (b *Backend) ListMonitors() ([]core.Monitor, error) {
 		return nil, err
 	}
 
-	// Logical geometry per output.
+	// Logical geometry per output (scale < 1 clamps to 1).
 	type lbox struct {
 		x, y, w, h int
 	}
 	boxes := make([]lbox, len(ms))
 	for i := range ms {
-		scale := ms[i].Scale
-		if scale < 1 {
-			scale = 1
-		}
-		boxes[i] = lbox{
-			x: ms[i].X, y: ms[i].Y,
-			w: int(float64(ms[i].Width) / scale),
-			h: int(float64(ms[i].Height) / scale),
-		}
+		w, h := logicalBox(ms[i])
+		boxes[i] = lbox{x: ms[i].X, y: ms[i].Y, w: w, h: h}
 	}
 
 	// Active: monitor under the cursor.
@@ -273,6 +273,18 @@ func (b *Backend) ListMonitors() ([]core.Monitor, error) {
 		})
 	}
 	return out, nil
+}
+
+// logicalBox converts an output mode's pixel box to logical points:
+// width/height ÷ scale, floored (2336/2 × 1261/2 → 1168×630 on the
+// scale-2 VM). A scale below 1 clamps to 1 (defensive — some records
+// report 0). Kept as a pure function so tests exercise the real rule.
+func logicalBox(m monitor) (int, int) {
+	scale := m.Scale
+	if scale < 1 {
+		scale = 1
+	}
+	return int(float64(m.Width) / scale), int(float64(m.Height) / scale)
 }
 
 // CursorPosition reads the pointer position (logical points) from
