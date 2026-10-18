@@ -62,24 +62,25 @@ func TestParseClients(t *testing.T) {
 	}
 }
 
+// TestParseBadJSON pins that malformed hyprctl payloads surface as
+// descriptive errors, never as partially-populated results.
+func TestParseBadJSON(t *testing.T) {
+	if _, err := parseClients(`{broken`); err == nil {
+		t.Error("parseClients: expected error for invalid JSON")
+	}
+	if _, err := parseMonitors(`not json`); err == nil {
+		t.Error("parseMonitors: expected error for invalid JSON")
+	}
+}
+
 func TestListWindowsMapping(t *testing.T) {
 	cs, err := parseClients(clientsFixture)
 	if err != nil {
 		t.Fatalf("parseClients: %v", err)
 	}
-	var got []core.Window
-	for i := range cs {
-		if !cs[i].isWindow() {
-			continue
-		}
-		got = append(got, core.Window{
-			ID:     cs[i].Address,
-			Title:  cs[i].Title,
-			App:    cs[i].Class,
-			PID:    cs[i].PID,
-			Bounds: core.Rect{X: cs[i].At[0], Y: cs[i].At[1], W: cs[i].Size[0], H: cs[i].Size[1]},
-		})
-	}
+	// The real filter + mapping (the one ListWindows uses), not a
+	// test-local reimplementation.
+	got := windowsFromClients(cs)
 	if len(got) != 2 {
 		t.Fatalf("got %d windows, want 2", len(got))
 	}
@@ -125,14 +126,32 @@ func TestParseMonitors(t *testing.T) {
 }
 
 func TestMonitorLogicalBox(t *testing.T) {
-	// width/scale → logical: 2336/2 × 1261/2 = 1168×630 (630.5 floor).
-	ms, _ := parseMonitors(monitorsFixture)
-	m := ms[0]
-	scale := m.Scale
-	w := int(float64(m.Width) / scale)
-	h := int(float64(m.Height) / scale)
-	if w != 1168 || h != 630 {
-		t.Errorf("logical box = %dx%d, want 1168x630", w, h)
+	// The real conversion rule (the one ListMonitors uses), across
+	// fractional scales and the scale<1 clamp.
+	cases := []struct {
+		name         string
+		scale        float64
+		wantW, wantH int
+	}{
+		// 2336/2 × 1261/2 = 1168×630 (630.5 floor).
+		{"integer scale 2", 2.0, 1168, 630},
+		{"fractional 1.5", 1.5, 1557, 840},    // 2336/1.5=1557.33→1557, 1261/1.5=840.67→840
+		{"fractional 1.25", 1.25, 1868, 1008}, // 2336/1.25=1868.8→1868, 1261/1.25=1008.8→1008
+		{"scale below 1 clamps to 1", 0.5, 2336, 1261},
+		{"scale 0 also clamps to 1", 0, 2336, 1261},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ms, err := parseMonitors(monitorsFixture)
+			if err != nil {
+				t.Fatalf("parseMonitors: %v", err)
+			}
+			ms[0].Scale = tc.scale
+			w, h := logicalBox(ms[0])
+			if w != tc.wantW || h != tc.wantH {
+				t.Errorf("logical box = %dx%d, want %dx%d", w, h, tc.wantW, tc.wantH)
+			}
+		})
 	}
 }
 

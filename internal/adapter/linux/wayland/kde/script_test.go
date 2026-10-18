@@ -3,6 +3,7 @@
 package kde
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -46,10 +47,33 @@ func TestJsStringEscaping(t *testing.T) {
 		// The JS-incompatible raw separators must be escaped.
 		{"a\u2028b", `"a\u2028b"`},
 		{"a\u2029b", `"a\u2029b"`},
+		// Template-literal syntax is inert inside a double-quoted
+		// literal: backtick/`${}`/single-quote pass through raw (a
+		// JSON string is a plain JS string, not a template).
+		{"`tpl` ${x} 'sq'", "\"`tpl` ${x} 'sq'\""},
 	}
 	for _, tc := range cases {
 		if got := jsString(tc.in); got != tc.want {
 			t.Errorf("jsString(%q) = %s, want %s", tc.in, got, tc.want)
+		}
+	}
+}
+
+// TestJsStringRoundtrip pins the contract that actually matters:
+// decoding the rendered literal must recover the original string for
+// arbitrary input — the render is only safe if it is reversible.
+func TestJsStringRoundtrip(t *testing.T) {
+	for _, in := range []string{
+		"", `plain`, `a"b`, `c\d`, "e\nf", "\u2028\u2029",
+		"`tpl ${x}`", "'sq'", "{uuid}", "日本語 ✓", "\x00 control",
+		strings.Repeat(`quote "`, 100),
+	} {
+		var got string
+		if err := json.Unmarshal([]byte(jsString(in)), &got); err != nil {
+			t.Fatalf("jsString(%q) is not valid JSON: %v", in, err)
+		}
+		if got != in {
+			t.Errorf("roundtrip %q → %q ≠ original", in, got)
 		}
 	}
 }

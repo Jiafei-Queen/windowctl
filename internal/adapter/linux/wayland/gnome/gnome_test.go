@@ -38,6 +38,30 @@ func TestParseWindowsError(t *testing.T) {
 	if _, err := parseWindows(`not json`); err == nil {
 		t.Error("expected error for invalid json")
 	}
+	// An ok=true report with no windows is an empty desktop, not an
+	// error — and must be a non-nil empty slice.
+	ws, err := parseWindows(`{"ok":true}`)
+	if err != nil {
+		t.Fatalf("empty report: %v", err)
+	}
+	if ws == nil || len(ws) != 0 {
+		t.Errorf("empty report → %v, want non-nil empty slice", ws)
+	}
+}
+
+// TestParseWindowsMissingFields pins the zero-value tolerance: entries
+// with absent fields decode as 0/"" rather than failing (the
+// extension always sends full records; this guards against a
+// partial/unexpected shape turning a whole listing into an error).
+func TestParseWindowsMissingFields(t *testing.T) {
+	ws, err := parseWindows(`{"ok":true,"windows":[{"id":"9"}]}`)
+	if err != nil {
+		t.Fatalf("parseWindows: %v", err)
+	}
+	want := core.Window{ID: "9"}
+	if ws[0] != want {
+		t.Errorf("window = %+v, want %+v", ws[0], want)
+	}
 }
 
 func TestParseMonitors(t *testing.T) {

@@ -158,6 +158,44 @@ func TestFindNodeMiss(t *testing.T) {
 	}
 }
 
+// TestWalkWindowsFocusMissing pins the defensive branch: children
+// absent from (or with an empty) focus array must still be walked, in
+// tree order — the focus array is documented to cover all children,
+// but the walker must not silently drop windows if sway ever omits
+// one. No panics, no lost windows, deterministic output.
+func TestWalkWindowsFocusMissing(t *testing.T) {
+	tt, err := parseTree(`{
+      "id": 1, "type": "root",
+      "nodes": [
+        {
+          "id": 2, "type": "workspace",
+          "nodes": [
+            {"id": 10, "type": "con", "name": "a", "app_id": "a",
+             "rect": {"x":0,"y":0,"width":10,"height":10},
+             "nodes": [], "floating_nodes": [], "focus": []},
+            {"id": 11, "type": "con", "name": "b", "app_id": "b",
+             "rect": {"x":10,"y":0,"width":10,"height":10},
+             "nodes": [], "floating_nodes": [], "focus": []}
+          ],
+          "floating_nodes": [],
+          "focus": []
+        }
+      ],
+      "floating_nodes": [], "focus": [2]
+    }`)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	ws := walkWindows(tt)
+	if len(ws) != 2 {
+		t.Fatalf("got %d windows, want 2: %+v", len(ws), ids(ws))
+	}
+	// Empty focus arrays fall back to tree order.
+	if got, want := ids(ws), []string{"10", "11"}; strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
 // outputsFixture mirrors get_outputs on the single-output VM: a real
 // primary flag (false — the QEMU display declares none) and focused
 // on the only output.
@@ -188,22 +226,18 @@ func TestOutputs(t *testing.T) {
 		t.Errorf("output[0] = %+v", os[0])
 	}
 	if os[1].Active {
-		t.Error("HEADLESS-9 should be inactive and filtered by outputs()")
+		t.Error("HEADLESS-9 should be inactive")
 	}
-	b := Backend{}
-	os = func() []output { // outputs() filters by active
-		active := os[:0]
-		for _, o := range os {
-			if o.Active {
-				active = append(active, o)
-			}
-		}
-		return active
-	}()
-	if len(os) != 1 {
-		t.Fatalf("active outputs = %d, want 1", len(os))
+
+	// The real filter (the one outputs() feeds ListMonitors with)
+	// must drop the inactive output.
+	active := activeOutputs(os)
+	if len(active) != 1 {
+		t.Fatalf("active outputs = %d, want 1", len(active))
 	}
-	_ = b
+	if active[0].Name != "Virtual-1" {
+		t.Errorf("active[0] = %s, want Virtual-1", active[0].Name)
+	}
 }
 
 func TestParseVerdicts(t *testing.T) {
@@ -239,5 +273,57 @@ func TestParseID(t *testing.T) {
 	}
 	if _, err := parseID("{0f0f0f0f-…}"); !errors.Is(err, core.ErrNoMatch) {
 		t.Fatalf("non-numeric ID should be ErrNoMatch, got %v", err)
+	}
+}
+
+// TestActiveOutputsMixed pins the multi-output filter: inactive
+// outputs are dropped, active ones (any scale) kept, order preserved.
+func TestActiveOutputsMixed(t *testing.T) {
+	payload := `[
+      {"name":"DP-1","active":true,"primary":true,"focused":false,
+       "scale":1.25,"current_workspace":"1",
+       "rect":{"x":0,"y":0,"width":1536,"height":864}},
+      {"name":"HEADLESS-1","active":false,"primary":false,"focused":false,
+       "scale":1.0,"current_workspace":"9",
+       "rect":{"x":0,"y":0,"width":800,"height":600}},
+      {"name":"DP-2","active":true,"primary":false,"focused":true,
+       "scale":2.0,"current_workspace":"2",
+       "rect":{"x":1536,"y":0,"width":1168,"height":630}}
+    ]`
+	os, err := parseOutputs(payload)
+	if err != nil {
+		t.Fatalf("parseOutputs: %v", err)
+	}
+	active := activeOutputs(os)
+	if len(active) != 2 {
+		t.Fatalf("active = %d, want 2 (DP-1 + DP-2, HEADLESS dropped)", len(active))
+	}
+	if active[0].Name != "DP-1" || active[0].Scale != 1.25 {
+		t.Errorf("active[0] = %+v", active[0])
+	}
+	if active[1].Name != "DP-2" || !active[1].Focused {
+		t.Errorf("active[1] = %+v", active[1])
+	}
+}
+
+// TestParseBadJSON pins that malformed IPC payloads surface as
+// descriptive errors, never as partially-populated results.
+func TestParseBadJSON(t *testing.T) {
+	if _, err := parseTree(`{broken`); err == nil {
+		t.Error("parseTree: expected error for invalid JSON")
+	}
+	if _, err := parseOutputs(`not json`); err == nil {
+		t.Error("parseOutputs: expected error for invalid JSON")
+	}
+}
+
+// TestParseVerdictsBadInput covers the two verdict failure modes:
+// unparseable JSON and the zero-verdict reply (swaymsg quirk).
+func TestParseVerdictsBadInput(t *testing.T) {
+	if _, err := parseVerdicts(`not json`); err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+	if _, err := parseVerdicts(`[]`); err == nil {
+		t.Error("expected error for an empty verdict array")
 	}
 }
