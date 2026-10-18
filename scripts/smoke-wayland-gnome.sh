@@ -34,37 +34,13 @@
 
 set -euo pipefail
 
-SCRIPT=$(basename "$0")
 WCTL_SMOKE_SSH="${WCTL_SMOKE_SSH:-}"
 WCTL_WAYLAND_TOLERANCE="${WCTL_WAYLAND_TOLERANCE:-50}"
 
-fail() {
-  echo "FAIL: $*" >&2
-  exit 1
-}
-
-# --- mode dispatch -----------------------------------------------------
-
-if [ "${1:-}" = "--remote" ]; then
-  # Running on the target over SSH: the binary was pushed to /tmp.
-  WCTL=/tmp/wctl-smoke-bin
-  WCTL_IS_REMOTE=1
-else
-  cd "$(dirname "$0")/.."
-  if [ -n "$WCTL_SMOKE_SSH" ]; then
-    echo '== Building linux binary and pushing to the SSH target =='
-    go build -o /tmp/wctl-smoke-bin ./cmd/windowctl || fail 'go build failed'
-    scp -q /tmp/wctl-smoke-bin "$WCTL_SMOKE_SSH:/tmp/wctl-smoke-bin" \
-      || fail "scp binary to $WCTL_SMOKE_SSH failed"
-    scp -q "$0" "$WCTL_SMOKE_SSH:/tmp/$SCRIPT" \
-      || fail "scp script to $WCTL_SMOKE_SSH failed"
-    # Re-run this script on the target with the remote flag.
-    ssh -o BatchMode=yes "$WCTL_SMOKE_SSH" "bash /tmp/$SCRIPT --remote"
-    exit $?
-  fi
-  WCTL=./windowctl
-  go build -o windowctl ./cmd/windowctl || fail 'go build failed'
-fi
+# Shared fail() + SSH push / remote / local build dispatch.
+# shellcheck disable=SC1091  # sibling script, resolved at runtime
+source "$(dirname "$0")/smoke-lib.sh"
+smoke_dispatch "${1:-}"
 
 echo '== windowctl Wayland (GNOME) smoke test =='
 
