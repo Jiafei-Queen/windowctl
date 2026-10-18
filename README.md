@@ -1,12 +1,9 @@
 # windowctl
 
-> **Deprecated — windowctl now lives on inside [aos](https://github.com/muthuishere/aos).**
-> aos does everything windowctl did (windows, zones, batch, screenshot, mouse/keyboard, draw, find, remote) plus the rest of the machine, and ships the one agent skill, installed automatically. This repo stays as the Go engine aos is built on.
+> **Fork — adds Linux Wayland on top of the frozen upstream.**
+> A fork of [muthuishere/windowctl](https://github.com/muthuishere/windowctl) at `c36983e`, kept alive as a Go library. Upstream is deprecated in favour of [aos](https://github.com/muthuishere/aos), which absorbed the engine and declares this repo frozen.
 >
-> ```sh
-> curl -fsSL https://raw.githubusercontent.com/muthuishere/aos/main/install.sh | sh      # macOS / Linux
-> curl -fsSL -o install.cmd https://raw.githubusercontent.com/muthuishere/aos/main/install.cmd && install.cmd   # Windows
-> ```
+> What this fork adds: Linux Wayland support — KDE Plasma, GNOME, sway, and Hyprland backends, dispatched at runtime from the session environment. macOS, Windows, and Linux X11 are unchanged from upstream. Import it as `github.com/Jiafei-Queen/windowctl` (see [Go library](#go-library)).
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/Jiafei-Queen/windowctl.svg)](https://pkg.go.dev/github.com/Jiafei-Queen/windowctl)
 
@@ -28,7 +25,9 @@ A unified interface across macOS, Windows, and Linux for:
 
 ## Installation
 
-### npm (recommended)
+This fork is normally consumed as a Go library, or built from this repo (`go install` below, or `task build`). The npm and prebuilt-binary channels still belong to the frozen upstream and publish upstream's code, without the Wayland backends.
+
+### npm (upstream)
 
 ```sh
 npx @muthuishere/windowctl <command>
@@ -328,6 +327,22 @@ task release -- 0.x.0   # Local release: bump → build → publish 6 npm pkgs �
 ```
 
 ## Go library
+
+### Consuming this fork
+
+The public API is upstream's; this fork only adds the Linux Wayland
+backends behind it. Keep the upstream import path by pointing `go.mod`
+at the fork:
+
+```go
+// go.mod — use any tag or pseudo-version published on this fork
+replace github.com/muthuishere/windowctl => github.com/Jiafei-Queen/windowctl v0.1.0
+```
+
+Importing `github.com/Jiafei-Queen/windowctl` directly works the same
+way. The adapter contract lives in `internal/core`, so a backend can
+only be added inside the module — which is why Wayland support had to
+land in the library rather than as a separate package.
 
 ```go
 import "github.com/Jiafei-Queen/windowctl"
