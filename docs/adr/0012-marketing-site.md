@@ -1,6 +1,6 @@
 # ADR 0012 — the product site (winctl.deemwar.com)
 
-- Status: Accepted (spike S9 PASS)
+- Status: Accepted (spike S9 PASS) — the site was removed from this fork
 - Date: 2026-07-26
 
 ## Context
