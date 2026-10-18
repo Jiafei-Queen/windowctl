@@ -62,6 +62,11 @@ tasks:
     cmds:
       - bash ./scripts/smoke-wayland-gnome.sh
 
+  smoke-wayland-sway:
+    desc: Run the Wayland (sway) real-window smoke test — local sway session, or a VM via WCTL_SMOKE_SSH=user@host
+    cmds:
+      - bash ./scripts/smoke-wayland-sway.sh
+
   npm:bump:
     desc: "Sync npm package versions across main + 5 platform sub-packages. Usage: task npm:bump -- 0.2.0"
     cmds:

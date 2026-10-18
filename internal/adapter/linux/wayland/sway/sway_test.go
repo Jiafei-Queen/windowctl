@@ -1,0 +1,226 @@
+//go:build linux
+
+package sway
+
+import (
+	"errors"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/muthuishere/windowctl/internal/core"
+)
+
+// treeFixture mirrors the live sway 1.10.1 get_tree shape recorded in
+// docs/wayland/sway-mechanism.md: root → output → workspace, one
+// native Wayland window split between two containers (id 16 tiled →
+// floated during the spike), one XWayland window, and chrome nodes.
+const treeFixture = `{
+  "id": 1, "type": "root", "name": "root", "rect": {"x":0,"y":0,"width":2336,"height":1261},
+  "nodes": [
+    {
+      "id": 2147483647, "type": "output", "name": "__i3",
+      "nodes": [
+        {"id": 2147483646, "type": "workspace", "name": "__i3_scratch",
+         "nodes": [], "floating_nodes": []}
+      ],
+      "floating_nodes": []
+    },
+    {
+      "id": 3, "type": "output", "name": "Virtual-1",
+      "rect": {"x":0,"y":0,"width":2336,"height":1261},
+      "nodes": [
+        {
+          "id": 4, "type": "workspace", "name": "1",
+          "rect": {"x":0,"y":20,"width":2336,"height":1241},
+          "nodes": [
+            {
+              "id": 17, "type": "con", "name": "foot term", "app_id": "foot",
+              "shell": "xdg_shell", "pid": 10997, "focused": false,
+              "floating": "auto_off",
+              "rect": {"x":0,"y":42,"width":1167,"height":1219},
+              "deco_rect": {"x":0,"y":20,"width":1167,"height":22},
+              "window_rect": {"x":2,"y":0,"width":1163,"height":1217},
+              "nodes": [], "floating_nodes": []
+            },
+            {
+              "id": 7, "type": "con", "name": "xclock", "app_id": null,
+              "shell": "x11", "pid": 4242, "focused": false,
+              "window_properties": {"class": "XClock", "instance": "xclock"},
+              "rect": {"x":1167,"y":42,"width":1169,"height":1219},
+              "deco_rect": {"x":1167,"y":20,"width":1169,"height":22},
+              "nodes": [], "floating_nodes": []
+            }
+          ],
+          "floating_nodes": [
+            {
+              "id": 16, "type": "floating_con", "name": "foot float",
+              "app_id": "foot", "shell": "xdg_shell", "pid": 10997,
+              "focused": true, "floating": "user_on",
+              "rect": {"x":500,"y":500,"width":599,"height":398},
+              "deco_rect": {"x":500,"y":458,"width":599,"height":22},
+              "window_rect": {"x":2,"y":0,"width":595,"height":376},
+              "nodes": [], "floating_nodes": []
+            }
+          ]
+        }
+      ],
+      "floating_nodes": []
+    }
+  ],
+  "floating_nodes": []
+}`
+
+func TestWalkWindows(t *testing.T) {
+	tt, err := parseTree(treeFixture)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	ws := walkWindows(tt)
+	if len(ws) != 3 {
+		t.Fatalf("got %d windows, want 3 (2 wayland + 1 xwayland; chrome excluded): %+v", len(ws), ids(ws))
+	}
+	// Enumeration order is tree order; floating nodes come after
+	// their workspace's tiled ones.
+	if got, want := ids(ws), []string{"17", "7", "16"}; strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func ids(ws []*node) []string {
+	out := make([]string, len(ws))
+	for i, w := range ws {
+		out[i] = strconv.FormatInt(w.ID, 10)
+	}
+	return out
+}
+
+func TestWindowFields(t *testing.T) {
+	tt, err := parseTree(treeFixture)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	n := findNode(tt, 16)
+	if n == nil {
+		t.Fatal("node 16 not found")
+	}
+	if got := n.app(); got != "foot" {
+		t.Errorf("app = %q, want foot", got)
+	}
+	if !n.isFloating() {
+		t.Error("node 16 (floating_con) should be floating")
+	}
+	if n.DecoRect.Height != 22 {
+		t.Errorf("deco height = %d, want 22 (SSD title bar)", n.DecoRect.Height)
+	}
+	if !n.Focused {
+		t.Error("node 16 should be focused")
+	}
+
+	// Tiled node: floating=false, deco present (SSD applies to tiled
+	// windows too — the deco_rect in the fixture is workspace-relative).
+	n17 := findNode(tt, 17)
+	if n17.isFloating() {
+		t.Error("node 17 (con) should not be floating")
+	}
+
+	// XWayland window: app falls back to WM_CLASS.
+	n7 := findNode(tt, 7)
+	if got := n7.app(); got != "XClock" {
+		t.Errorf("xwayland app = %q, want XClock", got)
+	}
+}
+
+func TestFindNodeMiss(t *testing.T) {
+	tt, err := parseTree(treeFixture)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	if n := findNode(tt, 99999); n != nil {
+		t.Fatalf("findNode(99999) = %+v, want nil", n)
+	}
+}
+
+// outputsFixture mirrors get_outputs on the single-output VM: a real
+// primary flag (false — the QEMU display declares none) and focused
+// on the only output.
+const outputsFixture = `[
+  {
+    "id": 3, "type": "output", "name": "Virtual-1",
+    "active": true, "primary": false, "focused": true,
+    "scale": 1.0, "current_workspace": "1",
+    "rect": {"x":0,"y":0,"width":2336,"height":1261}
+  },
+  {
+    "id": 99, "type": "output", "name": "HEADLESS-9",
+    "active": false, "primary": false, "focused": false,
+    "scale": 1.0, "current_workspace": "9",
+    "rect": {"x":0,"y":0,"width":800,"height":600}
+  }
+]`
+
+func TestOutputs(t *testing.T) {
+	os, err := parseOutputs(outputsFixture)
+	if err != nil {
+		t.Fatalf("parseOutputs: %v", err)
+	}
+	if len(os) != 2 {
+		t.Fatalf("got %d outputs, want 2", len(os))
+	}
+	if os[0].Name != "Virtual-1" || os[0].Rect.Width != 2336 || os[0].Scale != 1.0 {
+		t.Errorf("output[0] = %+v", os[0])
+	}
+	if os[1].Active {
+		t.Error("HEADLESS-9 should be inactive and filtered by outputs()")
+	}
+	b := Backend{}
+	os = func() []output { // outputs() filters by active
+		active := os[:0]
+		for _, o := range os {
+			if o.Active {
+				active = append(active, o)
+			}
+		}
+		return active
+	}()
+	if len(os) != 1 {
+		t.Fatalf("active outputs = %d, want 1", len(os))
+	}
+	_ = b
+}
+
+func TestParseVerdicts(t *testing.T) {
+	vs, err := parseVerdicts(`[
+      {"success": true},
+      {"success": false, "parse_error": false, "error": "No matching node."}
+    ]`)
+	if err != nil {
+		t.Fatalf("parseVerdicts: %v", err)
+	}
+	if len(vs) != 2 || vs[1].Error != noMatchingNode {
+		t.Fatalf("verdicts = %+v", vs)
+	}
+
+	err = commandError([]string{"[con_id=9]", "focus"}, noMatchingNode)
+	if err == nil || !isNoMatch(err) {
+		t.Fatalf("criteria miss should map to ErrNoMatch, got %v", err)
+	}
+
+	err = commandError([]string{"[con_id=9]", "focus"}, "Only floating containers can be moved to an absolute position")
+	if err == nil || isNoMatch(err) {
+		t.Fatalf("non-criteria error should not be ErrNoMatch, got %v", err)
+	}
+}
+
+func isNoMatch(err error) bool {
+	return errors.Is(err, core.ErrNoMatch)
+}
+
+func TestParseID(t *testing.T) {
+	if id, err := parseID("16"); err != nil || id != 16 {
+		t.Fatalf("parseID(16) = %d, %v", id, err)
+	}
+	if _, err := parseID("{0f0f0f0f-…}"); !errors.Is(err, core.ErrNoMatch) {
+		t.Fatalf("non-numeric ID should be ErrNoMatch, got %v", err)
+	}
+}

@@ -16,6 +16,8 @@ func TestDetectCompositor(t *testing.T) {
 	}{
 		{"swaysock wins", "/run/user/1000/sway-ipc.1000.sock", "", "KDE", compositorSway},
 		{"hyprland signature wins", "", "abc123", "KDE", compositorHyprland},
+		{"sway desktop hint", "", "", "sway", compositorSway},
+		{"hyprland desktop hint", "", "", "Hyprland", compositorHyprland},
 		{"kde desktop", "", "", "KDE", compositorKDE},
 		{"kde plasma variant", "", "", "KDE:PLASMA", compositorKDE},
 		{"gnome desktop", "", "", "GNOME", compositorGNOME},

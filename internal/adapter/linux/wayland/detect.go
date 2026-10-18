@@ -37,13 +37,20 @@ func detectCompositor() string {
 		return compositorHyprland
 	}
 	// XDG_CURRENT_DESKTOP is a colon-separated list ("ubuntu:GNOME"),
-	// so match by containment rather than equality.
+	// so match by containment rather than equality. The wlroots
+	// compositors export their own desktop hint (verified: a sway
+	// session reports XDG_CURRENT_DESKTOP=sway) — a fallback for
+	// environments where the IPC socket vars are absent.
 	de := strings.ToUpper(os.Getenv("XDG_CURRENT_DESKTOP"))
 	switch {
 	case strings.Contains(de, "KDE"):
 		return compositorKDE
 	case strings.Contains(de, "GNOME"):
 		return compositorGNOME
+	case strings.Contains(de, "SWAY"):
+		return compositorSway
+	case strings.Contains(de, "HYPRLAND"):
+		return compositorHyprland
 	}
 	return compositorUnknown
 }
