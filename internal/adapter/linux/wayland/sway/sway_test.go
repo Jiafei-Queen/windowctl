@@ -11,10 +11,10 @@ import (
 	"github.com/muthuishere/windowctl/internal/core"
 )
 
-// treeFixture mirrors the live sway 1.10.1 get_tree shape: root →
-// output → workspace, one native Wayland window split between two
-// containers (id 16 tiled → floated during the spike), one XWayland
-// window, and chrome nodes.
+// treeFixture mirrors the live sway 1.10.1 get_tree shape recorded in
+// docs/wayland/sway-mechanism.md: root → output → workspace, one
+// native Wayland window split between two containers (id 16 tiled →
+// floated during the spike), one XWayland window, and chrome nodes.
 const treeFixture = `{
   "id": 1, "type": "root", "name": "root", "rect": {"x":0,"y":0,"width":2336,"height":1261},
   "nodes": [

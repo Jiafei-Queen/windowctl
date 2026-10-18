@@ -88,7 +88,7 @@ func ensureInstalled() (bool, error) {
 // org.gnome.shell enabled-extensions (preserving any entries already
 // there) via the gsettings CLI. Requires the session dconf service —
 // reachable from a graphical-session shell, and from SSH with
-// DBUS_SESSION_BUS_ADDRESS injected.
+// DBUS_SESSION_BUS_ADDRESS injected (see gnome-mechanism.md §6).
 func seedEnabledExtensions() error {
 	out, err := exec.Command("gsettings", "get", "org.gnome.shell", "enabled-extensions").Output()
 	if err != nil {

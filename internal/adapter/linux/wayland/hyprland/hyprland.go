@@ -9,9 +9,9 @@
 // same shape as the sway backend, no D-Bus, no resident helper.
 //
 // The exact command spellings and coordinate semantics were verified
-// against a live Hyprland 0.55.2. Notable verified facts: hyprctl
-// dispatch failures are reported on stdout with exit code 0, so
-// verdicts are parsed from the output
+// against a live Hyprland 0.55.2 — see docs/wayland/hyprland-mechanism.md.
+// Notable verified facts: hyprctl dispatch failures are reported on
+// stdout with exit code 0, so verdicts are parsed from the output
 // text; exact-geometry dispatches target the window's logical box
 // directly (no title-bar compensation, unlike sway's SSD); resize
 // recenters the window, so the move must run last.

@@ -18,7 +18,8 @@
 // lock keeps it, via the extension's unlock-dialog session mode).
 // When a call finds no live service, connect() installs the embedded
 // extension files if missing and turns the failure into an explicit
-// "log out and back in once" message.
+// "log out and back in once" message — docs/wayland/gnome-mechanism.md
+// §2.
 package gnome
 
 import (

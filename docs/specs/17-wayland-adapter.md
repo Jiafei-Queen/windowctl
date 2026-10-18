@@ -10,8 +10,9 @@
   GNOME (Mutter) through a resident Shell extension exposing a D-Bus
   service; sway and Hyprland (wlroots) through their native IPC CLIs
   (`swaymsg` / `hyprctl`). Design details and the verified mechanics
-  are documented in the adapter package comments
-  (`internal/adapter/linux/wayland/`).
+  are documented in [docs/wayland/](../wayland/README.md); the adapter
+  package comments (`internal/adapter/linux/wayland/`) carry the
+  essentials.
 
 ## Requirement: Runtime session dispatch *(Implemented)*
 

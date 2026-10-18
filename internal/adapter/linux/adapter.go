@@ -6,7 +6,7 @@
 // session environment and returns the X11 adapter (shelling out to
 // wmctrl/xdotool, the historical implementation now living in x11/) or
 // the Wayland adapter (wayland/, per-compositor backends: KDE Plasma,
-// GNOME, sway, and Hyprland).
+// GNOME, sway, and Hyprland — see docs/wayland/design.md §8).
 //
 // See docs/specs/17-wayland-adapter.md for the spec.
 package linux

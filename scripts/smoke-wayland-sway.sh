@@ -16,13 +16,14 @@
 #       builds the linux binary locally, pushes it plus this script to
 #       the target's /tmp and runs the same body there with the
 #       graphical session's environment injected (the SSH login shell
-#       itself is a tty session). Handy for the VM test environment.
+#       itself is a tty session — see docs/wayland/sway-mechanism.md
+#       §2). Handy for the VM test environment.
 #
 # Target prerequisites: foot (test app), grim (screenshots). ydotool is
 # not exercised (ydotoold is not part of a default sway setup; input is
 # shared code already validated on KDE/GNOME).
 #
-# Sway specifics exercised here:
+# Sway specifics exercised here (sway-mechanism.md):
 #   - the smoke window starts tiled, so Move's auto `floating enable`
 #     path (the decided tiled-window policy) is what gets tested;
 #   - Move lands the get_tree rect exactly at the target (the
@@ -48,7 +49,7 @@ smoke_dispatch "${1:-}"
 echo '== windowctl Wayland (sway) smoke test =='
 
 # windowctl runs from an SSH shell see a tty session, so the graphical
-# session env must be injected. swaymsg does
+# session env must be injected (sway-mechanism.md §2). swaymsg does
 # NOT autodiscover the socket from XDG_RUNTIME_DIR alone, and the
 # socket path contains the sway PID — discover both env vars here.
 SWAYSOCK="${SWAYSOCK:-}"
@@ -75,7 +76,7 @@ wctl() {
 
 # --- 1. session guard --------------------------------------------------
 # The graphical session's env lives in sway's children (sway itself
-# does not carry SWAYSOCK); the socket check
+# does not carry SWAYSOCK — sway-mechanism.md §2); the socket check
 # above is the real guard for remote runs. This guard covers local
 # runs identically for both.
 pgrep -x sway >/dev/null || fail 'no sway process — is a sway session running?'
@@ -176,7 +177,7 @@ import json, os, subprocess, sys
 
 # The bash wctl() helper is unreachable from python; rebuild the env
 # injection here (remote runs see a tty session without the graphical
-# session env).
+# session env — sway-mechanism.md §2).
 def wctl(*args):
     env = dict(os.environ)
     binary = '/tmp/wctl-smoke-bin' if os.environ.get('WCTL_IS_REMOTE') else './windowctl'

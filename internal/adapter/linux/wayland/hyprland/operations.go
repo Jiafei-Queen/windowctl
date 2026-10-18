@@ -18,7 +18,7 @@ import (
 var errNoMatch = core.ErrNoMatch
 
 // noSuchWindow is hyprctl's criteria-miss verdict (printed on stdout
-// with exit code 0).
+// with exit code 0 — hyprland-mechanism.md).
 const noSuchWindow = "No such window found"
 
 // client is one element of `hyprctl -j clients`. at/size are the
