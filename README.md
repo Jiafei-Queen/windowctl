@@ -293,17 +293,18 @@ When multiple windows match, the first one is used.
 | Windows  | Supported   | Win32 (`user32.dll`)             |
 | Linux X11 | Best-effort | `wmctrl` / `xrandr`             |
 | Linux Wayland (KDE) | Supported | KWin D-Bus scripting + `spectacle` + `ydotool` |
-| Wayland (GNOME) | Not yet | Planned next (GNOME Shell extension backend — see docs/wayland/design.md §8) |
-| Wayland (Sway/Hyprland) | Not yet | Planned after GNOME (wlroots backend)   |
+| Linux Wayland (GNOME) | Supported | GNOME Shell extension (auto-installed; one relogin on first run) + `ydotool` |
+| Linux Wayland (sway) | Supported | `swaymsg` IPC + `grim` + `ydotool` |
+| Linux Wayland (Hyprland) | Supported | `hyprctl` IPC + `grim` + `ydotool` |
 | Other Wayland compositors | Not supported | No compositor window-management API |
 
 On Linux Wayland the backend is selected at runtime from the session
-environment: KDE sessions use KWin's D-Bus scripting interface for
-window management, `spectacle` for screenshots, and `ydotool`
-(uinput) for mouse/keyboard input. Screenshots and input need those
-tools installed; missing ones produce an actionable error. GNOME
-Wayland support is planned next (via a resident GNOME Shell
-extension), followed by Sway/Hyprland. See
+environment (KDE, GNOME, sway, or Hyprland). Screenshots and input
+need the backend's external tools installed (`spectacle` on KDE,
+`grim` on sway/Hyprland, `ydotool` for mouse/keyboard everywhere);
+missing ones produce an actionable error. The GNOME backend installs
+its Shell extension automatically on first use, which takes effect
+after one relogin. See
 [docs/specs/17-wayland-adapter.md](docs/specs/17-wayland-adapter.md) for the spec.
 
 ## Building
@@ -319,6 +320,9 @@ task smoke-darwin       # macOS real-window smoke (TextEdit)
 task smoke-darwin-apps  # macOS per-app Move/Focus matrix (Chrome, Safari, VSCode, ...)
 task smoke-windows      # Windows real-window smoke (Notepad)
 task smoke-wayland      # Wayland/KDE real-window smoke (local-only; needs a KDE Wayland session + spectacle)
+task smoke-wayland-gnome    # Wayland/GNOME real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
+task smoke-wayland-sway     # Wayland/sway real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
+task smoke-wayland-hyprland # Wayland/Hyprland real-window smoke (local session, or VM via WCTL_SMOKE_SSH=user@host)
 task release -- 0.x.0   # Local release: bump → build → publish 6 npm pkgs → tag → GH release
 ```
 

@@ -79,7 +79,7 @@ Developers who want to script workspace setups, restore layouts, or integrate wi
 - No GUI
 - No background daemon
 - No hotkeys or global shortcuts
-- No Wayland support beyond KDE Plasma (best-effort elsewhere)
+- No Wayland support beyond KDE Plasma, GNOME, sway, and Hyprland (other compositors are out of scope)
 
 ---
 
@@ -488,7 +488,7 @@ func Focus(match Match) error
 | OI-01 | Behavior when multiple windows match a filter      | TBD         |
 | OI-02 | Layout YAML schema definition                      | TBD         |
 | OI-03 | Vertical split zone notation                       | Not planned |
-| OI-04 | Wayland support scope                              | KDE implemented; GNOME next, then wlroots |
+| OI-04 | Wayland support scope                              | KDE, GNOME, sway, Hyprland implemented |
 | OI-05 | npm binary download vs. bundling strategy          | TBD         |
 
 ---

@@ -233,8 +233,9 @@ func stampMonitor(ws []Window, ms []Monitor) {
 // to the public layer; the first-in-z-order window on that display is
 // then by definition the focused window.
 //
-// No-op if no monitor is flagged Focused (e.g. linux adapter today) or
-// if no listed window's centroid lands on it.
+// No-op if no monitor is flagged Focused (e.g. the X11 adapter,
+// which cannot report monitor focus) or if no listed window's
+// centroid lands on it.
 func stampFocused(ws []Window, ms []Monitor) {
 	focusedID := 0
 	for _, m := range ms {
