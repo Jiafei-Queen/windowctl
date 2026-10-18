@@ -145,7 +145,7 @@ const focusSettleDelay = 150 * time.Millisecond
 
 // ensureFocused raises the matched window and blocks until the window
 // list reports it Focused. On platforms whose adapter cannot say which
-// monitor holds focus (no Monitor.Focused flag — linux today) the
+// monitor holds focus (no Monitor.Focused flag — the X11 adapter) the
 // verification is skipped: Focus succeeding is the best signal
 // available there.
 func ensureFocused(a Adapter, match Match) error {

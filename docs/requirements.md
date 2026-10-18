@@ -263,7 +263,7 @@ A declarative YAML file describing how multiple windows should be arranged acros
 
 - **Commands**: `windowctl type --text <s> [--title <s> | --app <s>]`, `windowctl key --combo <s> [--title <s> | --app <s>]`
 - `type` injects literal unicode (layout/IME-independent); `key` presses one chord parsed from `+`-separated modifiers (`cmd|command|meta|super|win`, `ctrl|control`, `alt|opt|option`, `shift`) plus a key (single char, `f1..f12`, or named: enter/tab/esc/space/arrows/delete/backspace/home/end/pageup/pagedown)
-- **Focus guard**: with `--title`/`--app` the command focuses the matched window and polls until the window list reports it `Focused` before injecting anything; if focus does not land within 2s it errors with input NOT sent. Without a filter, input goes to whatever is focused (caller beware — a window created milliseconds ago may not yet own the keyboard). On platforms that cannot report per-monitor focus (linux) the guard degrades to trusting Focus()
+- **Focus guard**: with `--title`/`--app` the command focuses the matched window and polls until the window list reports it `Focused` before injecting anything; if focus does not land within 2s it errors with input NOT sent. Without a filter, input goes to whatever is focused (caller beware — a window created milliseconds ago may not yet own the keyboard). On platforms that cannot report per-monitor focus (X11) the guard degrades to trusting Focus()
 
 #### FR-INP-03: Launch and Wait
 
