@@ -1,15 +1,12 @@
 name: Release
 
-# Publishes to npm with OIDC trusted publishing — no NPM_TOKEN, no `npm login`.
-# Triggered by pushing a version tag; the local `task release` path stays as a
-# fallback but is no longer the only way to ship (ADR 0013).
+# Builds the five release targets with goreleaser and attaches the archives to
+# a GitHub release. Triggered by pushing a version tag; `task snapshot` is the
+# local dry run.
 #
-# ONE-TIME MANUAL SETUP (cannot be done from here — npmjs.com UI only):
-# for each of the 6 packages, Settings → Publishing access → Trusted publisher:
-#   Repository: Jiafei-Queen/windowctl
-#   Workflow:   release.yaml
-# Packages: @muthuishere/windowctl and @muthuishere/windowctl-{darwin-arm64,
-# darwin-x64,linux-arm64,linux-x64,windows-x64}.
+# npm publishing (the OIDC trusted-publishing path of ADR 0013) is not part of
+# this fork: releases ship as GitHub release assets, and the library itself is
+# consumed with `go get` / `go install`.
 
 on:
   push:
@@ -17,12 +14,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (bare semver, no leading v)'
+        description: 'Version to release (bare semver, no leading v)'
         required: true
 
 permissions:
   contents: write   # create the GitHub release
-  id-token: write   # mint the OIDC token npm exchanges for publish rights
 
 jobs:
   release:
@@ -41,17 +37,6 @@ jobs:
         with:
           go-version: '1.24'
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-
-      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x.
-      - name: Upgrade npm
-        run: |
-          npm install -g npm@latest
-          npm --version
-
       - name: Resolve version
         id: v
         run: |
@@ -65,50 +50,15 @@ jobs:
 
       - run: go test ./...
 
-      - name: Sync npm package versions
-        run: node scripts/bump-npm-version.js "${{ steps.v.outputs.version }}"
-
-      # Builds all 5 targets and stages each binary into
-      # npm/platforms/<os>-<arch>/bin/ via the per-build post hooks.
+      # Builds all 5 targets. The per-build post hooks also stage each binary
+      # into npm/platforms/<os>-<arch>/bin/, which no release consumes today
+      # but keeps the npm packaging ready if it is ever published.
       # --skip=publish because this workflow creates the GitHub release itself
       # (the goreleaser config's release target predates the repo move).
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
           args: release --clean --skip=publish
-
-      - name: Verify all 5 binaries staged
-        run: |
-          set -e
-          for p in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
-            test -s "npm/platforms/$p/bin/windowctl" || { echo "missing $p"; exit 1; }
-          done
-          test -s npm/platforms/windows-x64/bin/windowctl.exe || { echo "missing windows-x64"; exit 1; }
-          echo "all 5 staged"
-
-      # No token anywhere: npm exchanges the Actions OIDC token for short-lived
-      # publish rights against the trusted publisher configured on npmjs.com.
-      #
-      # Provenance is on: this fork is a public repository, so npm can generate
-      # and attach a signed attestation linking each published package to this
-      # workflow run. Attestations require a public source repository, so this
-      # has to go back to false if the repo is ever made private.
-      - name: Publish to npm (OIDC)
-        env:
-          NPM_CONFIG_PROVENANCE: true
-        run: |
-          set -e
-          for dir in \
-            npm/platforms/darwin-arm64 \
-            npm/platforms/darwin-x64 \
-            npm/platforms/linux-arm64 \
-            npm/platforms/linux-x64 \
-            npm/platforms/windows-x64 \
-            npm
-          do
-            echo "=== publishing $dir ==="
-            (cd "$dir" && npm publish --access public)
-          done
 
       - name: Create GitHub release
         env:
@@ -118,17 +68,3 @@ jobs:
             dist/*.tar.gz dist/*.zip dist/checksums.txt \
             --title "v${{ steps.v.outputs.version }}" \
             --generate-notes
-
-      # The version bump is a real file change; land it so the repo and the
-      # published packages agree.
-      - name: Commit the version bump
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add npm/package.json npm/platforms/*/package.json
-          if git diff --staged --quiet; then
-            echo "already at ${{ steps.v.outputs.version }}"
-          else
-            git commit -m "release: v${{ steps.v.outputs.version }}"
-            git push origin HEAD:main
-          fi
