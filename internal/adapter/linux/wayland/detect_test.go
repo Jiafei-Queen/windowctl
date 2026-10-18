@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 func TestDetectCompositor(t *testing.T) {

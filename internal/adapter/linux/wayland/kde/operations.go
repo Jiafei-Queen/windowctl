@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // The JS bodies below are prepended with the script preamble (tag +

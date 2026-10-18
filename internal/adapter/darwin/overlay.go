@@ -129,7 +129,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // AppKit windows may only be created on the main thread. Locking the

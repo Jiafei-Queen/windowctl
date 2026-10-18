@@ -8,9 +8,9 @@
 > curl -fsSL -o install.cmd https://raw.githubusercontent.com/muthuishere/aos/main/install.cmd && install.cmd   # Windows
 > ```
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/muthuishere/windowctl.svg)](https://pkg.go.dev/github.com/muthuishere/windowctl)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Jiafei-Queen/windowctl.svg)](https://pkg.go.dev/github.com/Jiafei-Queen/windowctl)
 
-**windowctl** is a cross-platform CLI **and** Go library for managing desktop windows and monitors on macOS, Windows, and Linux in a consistent, scriptable way. Go docs: [pkg.go.dev/github.com/muthuishere/windowctl](https://pkg.go.dev/github.com/muthuishere/windowctl).
+**windowctl** is a cross-platform CLI **and** Go library for managing desktop windows and monitors on macOS, Windows, and Linux in a consistent, scriptable way. Go docs: [pkg.go.dev/github.com/Jiafei-Queen/windowctl](https://pkg.go.dev/github.com/Jiafei-Queen/windowctl).
 
 ## Overview
 
@@ -43,7 +43,7 @@ The npm package is a thin JS launcher that resolves the matching `@muthuishere/w
 ### Go
 
 ```sh
-go install github.com/muthuishere/windowctl/cmd/windowctl@latest
+go install github.com/Jiafei-Queen/windowctl/cmd/windowctl@latest
 ```
 
 ### Binary (GitHub Releases)
@@ -330,7 +330,7 @@ task release -- 0.x.0   # Local release: bump → build → publish 6 npm pkgs �
 ## Go library
 
 ```go
-import "github.com/muthuishere/windowctl"
+import "github.com/Jiafei-Queen/windowctl"
 
 windows, err := windowctl.ListWindows(windowctl.Filter{Title: "chrome"})
 monitors, err := windowctl.ListMonitors()

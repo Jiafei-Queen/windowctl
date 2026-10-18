@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // fakeBackend is a minimal Backend for input-path tests: no

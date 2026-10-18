@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	windowctl "github.com/muthuishere/windowctl"
+	windowctl "github.com/Jiafei-Queen/windowctl"
 )
 
 type skillInstallFn func(windowctl.SkillInstallOptions) ([]windowctl.SkillInstallResult, error)

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // treeFixture mirrors the live sway 1.10.1 get_tree shape recorded in

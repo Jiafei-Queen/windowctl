@@ -136,7 +136,7 @@ import (
 	"errors"
 	"unsafe"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // RecognizeText OCRs a global rect with Apple's Vision framework (on

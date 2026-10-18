@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // TextItem re-exports core.TextItem.

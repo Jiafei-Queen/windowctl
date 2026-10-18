@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/muthuishere/windowctl"
+	"github.com/Jiafei-Queen/windowctl"
 )
 
 // findCmd: `windowctl find` — locate text (a button, menu item, link,

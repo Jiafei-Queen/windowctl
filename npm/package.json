@@ -12,15 +12,15 @@
     "cli",
     "automation"
   ],
-  "homepage": "https://github.com/muthuishere/windowctl",
+  "homepage": "https://github.com/Jiafei-Queen/windowctl",
   "bugs": {
-    "url": "https://github.com/muthuishere/windowctl/issues"
+    "url": "https://github.com/Jiafei-Queen/windowctl/issues"
   },
   "license": "MIT",
   "author": "Muthukumaran Navaneethakrishnan",
   "repository": {
     "type": "git",
-    "url": "https://github.com/muthuishere/windowctl.git"
+    "url": "https://github.com/Jiafei-Queen/windowctl.git"
   },
   "bin": {
     "windowctl": "./bin/windowctl.js"

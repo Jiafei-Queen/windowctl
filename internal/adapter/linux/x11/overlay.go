@@ -5,7 +5,7 @@ package x11
 import (
 	"image"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // OverlayScale: X11 coordinates are pixels; no HiDPI handling yet.

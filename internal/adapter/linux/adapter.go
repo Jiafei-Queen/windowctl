@@ -12,9 +12,9 @@
 package linux
 
 import (
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland"
-	"github.com/muthuishere/windowctl/internal/adapter/linux/x11"
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/x11"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // New returns the adapter for the current session: the Wayland adapter

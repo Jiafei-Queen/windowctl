@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // The integration tests exercise the backend's full pipeline (query →

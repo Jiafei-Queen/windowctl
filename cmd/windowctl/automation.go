@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	windowctl "github.com/muthuishere/windowctl"
+	windowctl "github.com/Jiafei-Queen/windowctl"
 )
 
 // screenshotResult is the --json wire shape. The region fields are the

@@ -21,11 +21,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/gnome"
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/hyprland"
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/kde"
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/sway"
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland/gnome"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland/hyprland"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland/kde"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland/sway"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // Backend is the per-compositor contract the wayland adapter delegates

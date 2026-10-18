@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // Reply shapes mirror the KDE backend's script reports: every

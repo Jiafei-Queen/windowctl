@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // GrimCapture captures bounds (global virtual-desktop coordinates in

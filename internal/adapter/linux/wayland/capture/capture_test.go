@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // solidRGBA builds a w×h image where every pixel is the given color.

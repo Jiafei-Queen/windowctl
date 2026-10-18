@@ -5,7 +5,7 @@ package gnome
 import (
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 func TestParseWindows(t *testing.T) {

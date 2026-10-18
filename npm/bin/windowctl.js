@@ -25,7 +25,7 @@ function fail(msg) {
 if (!pkg) {
   fail(
     `unsupported platform ${key}. Supported: ${Object.keys(SUPPORTED).join(', ')}. ` +
-      `See https://github.com/muthuishere/windowctl/releases for manual downloads.`,
+      `See https://github.com/Jiafei-Queen/windowctl/releases for manual downloads.`,
   );
 }
 

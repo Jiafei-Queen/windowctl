@@ -5,7 +5,7 @@ package wayland
 import (
 	"fmt"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // evdevKeycodes maps windowctl's normalized key names to Linux evdev

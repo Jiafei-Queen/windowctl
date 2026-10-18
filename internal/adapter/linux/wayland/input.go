@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // ydotoolMissing returns a descriptive error when ydotool is not on

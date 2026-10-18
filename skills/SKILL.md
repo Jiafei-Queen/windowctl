@@ -38,7 +38,7 @@ description: >
 
 # window-ctl-skill
 
-A natural-language front door for the [`windowctl`](https://github.com/muthuishere/windowctl)
+A natural-language front door for the [`windowctl`](https://github.com/Jiafei-Queen/windowctl)
 cross-platform window manager CLI. The skill owns intent routing and
 recipe knowledge; `windowctl` owns the OS-specific window operations.
 

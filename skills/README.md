@@ -37,7 +37,7 @@ macOS: run `windowctl permissions` once and approve in **System Settings → Pri
 
 ## Two repos
 
-- [**windowctl**](https://github.com/muthuishere/windowctl) — the cross-platform CLI (macOS / Windows / Linux). Where the actual window operations happen.
+- [**windowctl**](https://github.com/Jiafei-Queen/windowctl) — the cross-platform CLI (macOS / Windows / Linux). Where the actual window operations happen.
 - [**window-control**](https://github.com/muthuishere-agent-skills/window-control) — this skill. Routes natural language into `windowctl` calls.
 
 ## License

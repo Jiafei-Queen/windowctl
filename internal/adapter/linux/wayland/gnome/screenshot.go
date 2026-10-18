@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/capture"
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/adapter/linux/wayland/capture"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // CaptureRect captures bounds (global coordinates in points) into

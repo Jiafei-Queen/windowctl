@@ -4,7 +4,7 @@ description: The CLI is a thin shell over an importable package.
 ---
 
 ```go
-import windowctl "github.com/muthuishere/windowctl"
+import windowctl "github.com/Jiafei-Queen/windowctl"
 ```
 
 ```go

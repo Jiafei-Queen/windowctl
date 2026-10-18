@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/muthuishere/windowctl"
+	"github.com/Jiafei-Queen/windowctl"
 )
 
 // drawCmd: `windowctl draw` — a big arrow with a sign over every window.

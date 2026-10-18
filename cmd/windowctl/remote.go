@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	windowctl "github.com/muthuishere/windowctl"
+	windowctl "github.com/Jiafei-Queen/windowctl"
 )
 
 func remoteCmd(args []string) {

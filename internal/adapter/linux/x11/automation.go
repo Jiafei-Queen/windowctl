@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 func (a *Adapter) CaptureRect(bounds core.Rect, outPath string) error {

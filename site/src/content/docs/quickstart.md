@@ -16,7 +16,7 @@ download step at install time — the binary is in the package.
 Other routes:
 
 ```sh
-go install github.com/muthuishere/windowctl/cmd/windowctl@latest   # Go
+go install github.com/Jiafei-Queen/windowctl/cmd/windowctl@latest   # Go
 # or grab a binary from GitHub Releases
 ```
 

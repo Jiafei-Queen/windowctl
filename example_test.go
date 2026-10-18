@@ -3,12 +3,12 @@ package windowctl_test
 import (
 	"fmt"
 
-	"github.com/muthuishere/windowctl"
+	"github.com/Jiafei-Queen/windowctl"
 )
 
 // Examples in this file double as the importability check for the public
 // Go API: they live in package windowctl_test, which means they import
-// "github.com/muthuishere/windowctl" the same way an external consumer
+// "github.com/Jiafei-Queen/windowctl" the same way an external consumer
 // would. Compilation success demonstrates the requirement from
 // docs/specs/07-go-library-api.md that consumers see the documented types
 // and functions without pulling in CLI dependencies.

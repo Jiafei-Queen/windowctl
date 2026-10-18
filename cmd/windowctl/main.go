@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"text/tabwriter"
 
-	windowctl "github.com/muthuishere/windowctl"
+	windowctl "github.com/Jiafei-Queen/windowctl"
 )
 
 func main() {

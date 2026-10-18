@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	windowctl "github.com/muthuishere/windowctl"
+	windowctl "github.com/Jiafei-Queen/windowctl"
 )
 
 func TestPrintWindowsTableHasSpecHeaderColumns(t *testing.T) {

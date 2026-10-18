@@ -5,7 +5,7 @@
 - **Status:** Implemented
 - **Source:** LIB-01, LIB-02, LIB-03, §8.3
 - **Summary:** Make the library that already powers the CLI usable as a
-  first-class, importable Go module at `github.com/muthuishere/windowctl`,
+  first-class, importable Go module at `github.com/Jiafei-Queen/windowctl`,
   with no CLI dependencies leaking into consumers.
 
 > **Timeline note.** From v1 the CLI has been a thin wrapper around an
@@ -37,7 +37,7 @@
 
 ### Scenario: Library exposes the documented types and functions
 
-- **WHEN** a Go consumer imports `github.com/muthuishere/windowctl`
+- **WHEN** a Go consumer imports `github.com/Jiafei-Queen/windowctl`
 - **THEN** the package exposes the types `Window`, `Monitor`, `Rect`,
   `Filter`, `Match`, `Target` and the functions
   `ListWindows(filter Filter)`, `ListMonitors()`,
@@ -52,7 +52,7 @@
 ### Scenario: Importing the library does not pull in CLI deps
 
 - **WHEN** a third-party Go module depends only on
-  `github.com/muthuishere/windowctl`
+  `github.com/Jiafei-Queen/windowctl`
 - **THEN** transitive dependencies do not include the CLI's flag/parsing
   packages (per LIB-03) — the CLI lives in its own `package main` under
   `cmd/windowctl/` and is never reached from the library's import graph

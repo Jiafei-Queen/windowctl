@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/muthuishere/windowctl/internal/core"
+	"github.com/Jiafei-Queen/windowctl/internal/core"
 )
 
 // clientsFixture mirrors the live `hyprctl -j clients` shape recorded

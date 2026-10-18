@@ -1,4 +1,4 @@
-module github.com/muthuishere/windowctl
+module github.com/Jiafei-Queen/windowctl
 
 go 1.24
 

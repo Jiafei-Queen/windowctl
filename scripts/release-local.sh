@@ -117,4 +117,4 @@ gh release create "v$VERSION" \
 echo ""
 echo "✓ released v$VERSION"
 echo "    npm: https://www.npmjs.com/package/@muthuishere/windowctl/v/$VERSION"
-echo "    gh:  https://github.com/muthuishere/windowctl/releases/tag/v$VERSION"
+echo "    gh:  https://github.com/Jiafei-Queen/windowctl/releases/tag/v$VERSION"

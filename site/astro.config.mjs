@@ -30,7 +30,7 @@ export default defineConfig({
 				'./src/styles/windowctl.css',
 			],
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/muthuishere/windowctl' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/Jiafei-Queen/windowctl' },
 			],
 			sidebar: [
 				{
