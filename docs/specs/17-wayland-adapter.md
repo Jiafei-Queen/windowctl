@@ -128,6 +128,12 @@
   WM_CLASS — the normalWindow equivalent; swaybar never appears in
   the tree) and `[con_id=N]` criteria commands for acting on one
   window; the stable window ID is the tree node's numeric `id`
+- **AND** the list is walked through each container's `focus` array
+  (children in focus-recency order), so it is frontmost-first like
+  the darwin/windows adapters — the public layer's Focused stamp
+  depends on it; the plain nodes/floating_nodes list order is
+  creation order, not stacking order (verified: the focused floating
+  window is not first in floating_nodes)
 - **AND** tiled windows cannot be absolutely positioned in sway
   (verified error "Only floating containers can be moved to an
   absolute position"), so Move floats the window first — changing
@@ -151,6 +157,20 @@
 - **AND** `mouse position` is unavailable: sway's IPC exposes no
   cursor query at all (verified — get_tree/get_outputs/get_seats),
   so CursorPosition fails with a descriptive ErrNotImplemented
+
+### Scenario: Cursor positioning must bypass ydotool on sway
+
+- **WHEN** `mouse move` / `mouse click` runs on sway
+- **THEN** positioning goes through sway's own
+  `seat seat0 cursor set X Y` (absolute layout coordinates, seat
+  "seat0" by default), and button presses go through ydotool
+- **AND** ydotool's `--absolute` is NOT used as a positioning
+  primitive: verified on a default sway 1.10.1 config its landing is
+  non-deterministic (the same request landed inside the target
+  window, in the gap before it, and past its far edge on successive
+  calls — the INT32_MIN slam's residual runs through libinput
+  pointer acceleration), while `cursor set` is exact (verified
+  against 10px gaps and window edges)
 
 ### Scenario: Region capture via grim
 

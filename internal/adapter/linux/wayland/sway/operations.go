@@ -69,6 +69,10 @@ type node struct {
 	WinProps      *winProps `json:"window_properties"`
 	Nodes         []*node   `json:"nodes"`
 	FloatingNodes []*node   `json:"floating_nodes"`
+	// Focus lists the child IDs in focus-recency order (most
+	// recently focused first) — sway's own z-order proxy for this
+	// container's children.
+	Focus []int64 `json:"focus"`
 }
 
 // tree is the get_tree root (type "root").
@@ -135,23 +139,44 @@ func (n *node) app() string {
 	return ""
 }
 
-// walkWindows returns every window node in tree order (depth-first,
-// tiling layout order — sway has no stacking-order query, so this is
-// enumeration order, not z-order; z position is only asserted via the
-// `focused` flag). Floating windows come after their workspace's
-// tiled ones, matching sway's own floating_nodes placement.
+// walkWindows returns every window node in FOCUS-RECENCY order,
+// frontmost first. Each sway container exposes its children's focus
+// order in the `focus` array (most recently focused child id first),
+// so following it depth-first yields the same "frontmost first"
+// ordering the darwin/windows adapters provide — which the public
+// layer's stampFocused relies on to mark the focused window. Plain
+// nodes/floating_nodes list order is creation order, NOT stacking
+// order (verified on sway 1.10.1: the focused floating window is not
+// first in floating_nodes, and a click-focus on a second floating
+// window was stamped onto the wrong one before this fix).
 func walkWindows(t *tree) []*node {
 	var out []*node
 	var walk func(n *node)
 	walk = func(n *node) {
 		if n.isWindow() {
 			out = append(out, n)
+			return
 		}
-		for _, c := range n.Nodes {
-			walk(c)
+		children := make([]*node, 0, len(n.Nodes)+len(n.FloatingNodes))
+		children = append(children, n.Nodes...)
+		children = append(children, n.FloatingNodes...)
+		byID := make(map[int64]*node, len(children))
+		for _, c := range children {
+			byID[c.ID] = c
 		}
-		for _, c := range n.FloatingNodes {
-			walk(c)
+		visited := make(map[int64]bool, len(children))
+		for _, id := range n.Focus {
+			if c := byID[id]; c != nil && !visited[id] {
+				visited[id] = true
+				walk(c)
+			}
+		}
+		// Children absent from the focus array (defensive — focus is
+		// documented to cover all children) keep tree order.
+		for _, c := range children {
+			if !visited[c.ID] {
+				walk(c)
+			}
 		}
 	}
 	walk(t)
@@ -389,6 +414,22 @@ func (b *Backend) Focus(windowID string) error {
 		return err
 	}
 	return runCommand("["+fmt.Sprintf("con_id=%d", id)+"]", "focus")
+}
+
+// MoveCursor positions the OS cursor at the exact logical point via
+// sway's seat cursor command (`seat <seat> cursor set X Y` — absolute
+// layout coordinates; seat "seat0" is the default). This is the
+// pointerMover hook the shared input path prefers over ydotool
+// --absolute: ydotool's absolute emulation is an INT32_MIN relative
+// slam + offset (Client/tool_mousemove.c) whose landing runs through
+// libinput pointer acceleration, and on sway's default adaptive
+// config that landing is non-deterministic (verified: identical
+// requests landed inside the target window, in the gap before it,
+// and past its far edge on successive calls). cursor set is exact —
+// verified against 10px gaps and window edges on sway 1.10.1.
+func (b *Backend) MoveCursor(x, y int) error {
+	return runCommand("seat", "seat0", "cursor", "set",
+		strconv.Itoa(x), strconv.Itoa(y))
 }
 
 func loadTree() (*tree, error) {

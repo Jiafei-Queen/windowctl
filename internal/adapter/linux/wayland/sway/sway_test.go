@@ -28,6 +28,7 @@ const treeFixture = `{
     },
     {
       "id": 3, "type": "output", "name": "Virtual-1",
+      "focus": [4],
       "rect": {"x":0,"y":0,"width":2336,"height":1261},
       "nodes": [
         {
@@ -41,7 +42,7 @@ const treeFixture = `{
               "rect": {"x":0,"y":42,"width":1167,"height":1219},
               "deco_rect": {"x":0,"y":20,"width":1167,"height":22},
               "window_rect": {"x":2,"y":0,"width":1163,"height":1217},
-              "nodes": [], "floating_nodes": []
+              "nodes": [], "floating_nodes": [], "focus": []
             },
             {
               "id": 7, "type": "con", "name": "xclock", "app_id": null,
@@ -49,10 +50,19 @@ const treeFixture = `{
               "window_properties": {"class": "XClock", "instance": "xclock"},
               "rect": {"x":1167,"y":42,"width":1169,"height":1219},
               "deco_rect": {"x":1167,"y":20,"width":1169,"height":22},
-              "nodes": [], "floating_nodes": []
+              "nodes": [], "floating_nodes": [], "focus": []
             }
           ],
           "floating_nodes": [
+            {
+              "id": 18, "type": "floating_con", "name": "foot float 2",
+              "app_id": "foot", "shell": "xdg_shell", "pid": 10997,
+              "focused": false, "floating": "user_on",
+              "rect": {"x":900,"y":600,"width":599,"height":398},
+              "deco_rect": {"x":900,"y":558,"width":599,"height":22},
+              "window_rect": {"x":2,"y":0,"width":595,"height":376},
+              "nodes": [], "floating_nodes": [], "focus": []
+            },
             {
               "id": 16, "type": "floating_con", "name": "foot float",
               "app_id": "foot", "shell": "xdg_shell", "pid": 10997,
@@ -60,15 +70,17 @@ const treeFixture = `{
               "rect": {"x":500,"y":500,"width":599,"height":398},
               "deco_rect": {"x":500,"y":458,"width":599,"height":22},
               "window_rect": {"x":2,"y":0,"width":595,"height":376},
-              "nodes": [], "floating_nodes": []
+              "nodes": [], "floating_nodes": [], "focus": []
             }
-          ]
+          ],
+          "focus": [16, 18, 17, 7]
         }
       ],
       "floating_nodes": []
     }
   ],
-  "floating_nodes": []
+  "floating_nodes": [],
+  "focus": [3, 2147483647]
 }`
 
 func TestWalkWindows(t *testing.T) {
@@ -77,12 +89,17 @@ func TestWalkWindows(t *testing.T) {
 		t.Fatalf("parseTree: %v", err)
 	}
 	ws := walkWindows(tt)
-	if len(ws) != 3 {
-		t.Fatalf("got %d windows, want 3 (2 wayland + 1 xwayland; chrome excluded): %+v", len(ws), ids(ws))
+	if len(ws) != 4 {
+		t.Fatalf("got %d windows, want 4 (3 wayland + 1 xwayland; chrome excluded): %+v", len(ws), ids(ws))
 	}
-	// Enumeration order is tree order; floating nodes come after
-	// their workspace's tiled ones.
-	if got, want := ids(ws), []string{"17", "7", "16"}; strings.Join(got, ",") != strings.Join(want, ",") {
+	// Order is FOCUS-RECENCY (frontmost first), walked through each
+	// container's `focus` array — NOT the nodes/floating_nodes list
+	// order, which is creation order (the fixture puts floating node
+	// 18 before the focused 16 in floating_nodes while the focus
+	// array has 16 first). The focused floating window (16) must come
+	// out on top: the public layer's stampFocused marks the first
+	// window of this list on the focused monitor.
+	if got, want := ids(ws), []string{"16", "18", "17", "7"}; strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("order = %v, want %v", got, want)
 	}
 }
