@@ -10,3 +10,4 @@ windowctl
 /npm/platforms/*/bin/windowctl
 /npm/platforms/*/bin/windowctl.exe
 /.claude/
+coverage.out

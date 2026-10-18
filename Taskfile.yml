@@ -7,14 +7,22 @@ tasks:
       - go build -o bin/windowctl ./cmd/windowctl
 
   test:
-    desc: Run all tests
+    desc: Run all tests (fresh run, race detector on)
     cmds:
-      - go test ./...
+      - go test -count=1 -race ./...
+
+  test:cover:
+    desc: Run all tests with coverage; fails below the 45% statement threshold
+    cmds:
+      - go test -count=1 -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out | tail -1 | awk '{ total=$3; sub("%","",total); if (total < 45) { print "coverage " total "% < 45%"; exit 1 } ; print "coverage " total "% ok" }'
 
   lint:
-    desc: Run go vet across the module
+    desc: go vet + shellcheck smoke scripts + node syntax check on the GNOME extension
     cmds:
       - go vet ./...
+      - shellcheck -S warning scripts/*.sh
+      - node --check internal/adapter/linux/wayland/gnome/extension/extension.js
 
   snapshot:
     desc: Build a snapshot release for all platforms locally (no publish, no tag). Stages binaries into npm/platforms/<os-arch>/bin/ via the per-build post hook.
