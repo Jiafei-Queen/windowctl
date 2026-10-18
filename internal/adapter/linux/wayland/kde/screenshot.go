@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/png"
 	"os"
 	"os/exec"
 	"strings"
 
-	xdraw "golang.org/x/image/draw"
-
+	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/capture"
 	"github.com/muthuishere/windowctl/internal/core"
 )
 
@@ -53,7 +51,7 @@ func (b *Backend) CaptureRect(bounds core.Rect, outPath string) error {
 		return fmt.Errorf("kde: spectacle capture: %v: %s", err, strings.TrimSpace(string(out)))
 	}
 
-	src, err := loadPNG(tmpPath)
+	src, err := capture.LoadPNG(tmpPath)
 	if err != nil {
 		return err
 	}
@@ -75,16 +73,15 @@ func (b *Backend) CaptureRect(bounds core.Rect, outPath string) error {
 
 	if dpr == 1 {
 		// Fast path: the crop is already point-sized.
-		return writeCropped(src, srcRect, bounds.W, bounds.H, outPath)
+		dst := image.NewRGBA(image.Rect(0, 0, bounds.W, bounds.H))
+		draw.Draw(dst, dst.Bounds(), src, srcRect.Min, draw.Src)
+		return capture.WritePNG(dst, outPath)
 	}
 
 	// HiDPI: resample the device-pixel crop down to point size.
 	cropped := image.NewRGBA(image.Rect(0, 0, srcRect.Dx(), srcRect.Dy()))
 	draw.Draw(cropped, cropped.Bounds(), src, srcRect.Min, draw.Src)
-
-	dst := image.NewRGBA(image.Rect(0, 0, bounds.W, bounds.H))
-	xdraw.BiLinear.Scale(dst, dst.Bounds(), cropped, cropped.Bounds(), draw.Src, nil)
-	return writePNG(dst, outPath)
+	return capture.WritePNG(capture.ResampleToPoints(cropped, bounds.W, bounds.H), outPath)
 }
 
 // scaleForBounds returns the devicePixelRatio of the output containing
@@ -106,37 +103,4 @@ func (b *Backend) scaleForBounds(bounds core.Rect) float64 {
 		}
 	}
 	return 1
-}
-
-func loadPNG(path string) (image.Image, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("kde: open capture: %w", err)
-	}
-	defer f.Close()
-	img, err := png.Decode(f)
-	if err != nil {
-		return nil, fmt.Errorf("kde: decode capture PNG: %w", err)
-	}
-	return img, nil
-}
-
-// writeCropped copies the srcRect region of src into a fresh
-// point-sized image and writes it to outPath.
-func writeCropped(src image.Image, srcRect image.Rectangle, w, h int, outPath string) error {
-	dst := image.NewRGBA(image.Rect(0, 0, w, h))
-	draw.Draw(dst, dst.Bounds(), src, srcRect.Min, draw.Src)
-	return writePNG(dst, outPath)
-}
-
-func writePNG(img image.Image, outPath string) error {
-	f, err := os.Create(outPath)
-	if err != nil {
-		return fmt.Errorf("kde: create %s: %w", outPath, err)
-	}
-	defer f.Close()
-	if err := png.Encode(f, img); err != nil {
-		return fmt.Errorf("kde: encode PNG to %s: %w", outPath, err)
-	}
-	return nil
 }

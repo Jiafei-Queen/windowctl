@@ -5,10 +5,10 @@
 // Wayland deliberately gives clients no protocol for managing other
 // clients' windows, so this adapter dispatches per compositor: window
 // enumeration and geometry control go through each compositor's own
-// channel (KWin's D-Bus scripting interface for KDE; GNOME via a
-// resident Shell extension and wlroots compositors via swaymsg /
-// hyprctl are planned follow-ups, in that order — see
-// docs/wayland/design.md §8). Input
+// channel — KWin's D-Bus scripting interface for KDE (kde/) and a
+// resident GNOME Shell extension exposing a D-Bus service for
+// GNOME/Mutter (gnome/). wlroots compositors (swaymsg / hyprctl) are
+// the planned follow-up — see docs/wayland/design.md §8. Input
 // injection (mouse/keyboard) is compositor-independent via ydotool's
 // uinput virtual device, so it lives here as shared code.
 //
@@ -20,6 +20,7 @@ import (
 	"image"
 	"os/exec"
 
+	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/gnome"
 	"github.com/muthuishere/windowctl/internal/adapter/linux/wayland/kde"
 	"github.com/muthuishere/windowctl/internal/core"
 )
@@ -56,13 +57,15 @@ func New() *Adapter {
 	switch name {
 	case compositorKDE:
 		return &Adapter{compositor: name, backend: kde.New()}
+	case compositorGNOME:
+		return &Adapter{compositor: name, backend: gnome.New()}
 	default:
 		return &Adapter{compositor: name}
 	}
 }
 
 func (a *Adapter) unsupported() error {
-	return fmt.Errorf("no Wayland backend for compositor %q (implemented: KDE Plasma/KWin): %w",
+	return fmt.Errorf("no Wayland backend for compositor %q (implemented: KDE Plasma/KWin, GNOME/Mutter): %w",
 		a.compositor, core.ErrNotImplemented)
 }
 
@@ -129,7 +132,7 @@ func (a *Adapter) Launch(app string) error {
 // prerequisites on KDE are external tools — spectacle, ydotool — whose
 // absence surfaces as errors from the calls that need them.)
 func (a *Adapter) RequestAccessibility() error { return nil }
-func (a *Adapter) CheckAccessibility() bool   { return true }
+func (a *Adapter) CheckAccessibility() bool    { return true }
 
 // CheckScreenCapture / RequestScreenCapture mirror the pair for the
 // macOS Screen Recording permission; likewise no-ops here.
