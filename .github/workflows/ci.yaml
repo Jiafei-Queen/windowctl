@@ -1,9 +1,17 @@
 name: CI
 
+# What CI can verify (and deliberately cannot): pure-Go unit tests,
+# static analysis, and script/JS syntax gates, plus the macOS/Windows
+# real-window smoke tests those runners can host. The Wayland smokes
+# (`task smoke-wayland*`) need a live compositor and stay local-only —
+# docs/specs/10-ci-test-matrix.md forbids Docker for window tests.
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build-test:
@@ -20,7 +28,22 @@ jobs:
           go-version: '1.24'
       - run: go vet ./...
       - run: go build ./...
-      - run: go test ./...
+      # The linux adapter (wayland backends included) is behind
+      # //go:build linux, so the race run and the syntax gates below only
+      # apply to the ubuntu runner.
+      - name: go test (race)
+        if: matrix.os == 'ubuntu-latest'
+        run: go test -count=1 -race ./...
+      - name: go test
+        if: matrix.os != 'ubuntu-latest'
+        run: go test ./...
+      - name: shellcheck smoke scripts
+        if: matrix.os == 'ubuntu-latest'
+        # Preinstalled on ubuntu runners.
+        run: shellcheck -S warning scripts/*.sh
+      - name: node syntax check (GNOME extension)
+        if: matrix.os == 'ubuntu-latest'
+        run: node --check internal/adapter/linux/wayland/gnome/extension/extension.js
       - name: Install Task
         if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
         uses: arduino/setup-task@v2

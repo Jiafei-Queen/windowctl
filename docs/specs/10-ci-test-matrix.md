@@ -6,13 +6,16 @@
   Windows and macOS real-window smoke tests are wired into the workflow
   via the `task smoke-windows` / `task smoke-darwin` targets in
   `Taskfile.yml` (which delegate to `scripts/smoke-windows.ps1` and
-  `scripts/smoke-darwin.sh` respectively); a Linux real-window smoke
-  test is still TBD.
+  `scripts/smoke-darwin.sh` respectively); the Linux real-window smoke
+  tests (`task smoke-wayland*`) need a live compositor, so they stay
+  local-only.
 - **Source:** §10.1, §10.2, §10.3, §10.4
 - **Summary:** GitHub Actions runs `go build ./...`, `go vet ./...`, and
-  `go test ./...` on Ubuntu, macOS, and Windows on every push/PR, with
-  Windows and macOS real-window smoke tests as follow-up workflow steps.
-  No Docker is used for window tests.
+  `go test ./...` on Ubuntu, macOS, and Windows on every push/PR, plus
+  Ubuntu-only gates (`go test -race`, ShellCheck over `scripts/*.sh`,
+  `node --check` on the GNOME Shell extension), with Windows and macOS
+  real-window smoke tests as follow-up workflow steps. No Docker is used
+  for window tests.
 
 ## Requirement: Build & test on three OSes
 
@@ -22,6 +25,9 @@
 - **THEN** `go vet ./...`, `go build ./...`, and `go test ./...` run on
   `ubuntu-latest`, `macos-latest`, and `windows-latest` (per
   `.github/workflows/ci.yaml`)
+- **AND** the Ubuntu job additionally runs the tests under `-race` and
+  gates the Linux-only surfaces: ShellCheck over `scripts/*.sh` and
+  `node --check` on the embedded GNOME Shell extension
 - **AND** all three jobs must pass for the workflow to succeed
 
 ## Requirement: Windows integration smoke test *(Implemented)*
@@ -93,3 +99,4 @@
 | `task lint` | Runs the linter |
 | `task smoke-windows` | Drives `scripts/smoke-windows.ps1` (CI step on `windows-latest`) |
 | `task smoke-darwin` | Drives `scripts/smoke-darwin.sh` (CI step on `macos-latest`) |
+| `task smoke-wayland*` | Per-compositor Linux Wayland smokes (local-only — runners have no compositor) |
