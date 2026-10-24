@@ -112,6 +112,96 @@ func ids(ws []*node) []string {
 	return out
 }
 
+// hitIDs maps hits to node id strings.
+func hitIDs(hits []windowHit) []string {
+	out := make([]string, len(hits))
+	for i, h := range hits {
+		out[i] = strconv.FormatInt(h.node.ID, 10)
+	}
+	return out
+}
+
+// TestWalkWindowHitsWorkspaces pins the workspace attribution: every
+// window records the name of the workspace it hangs under.
+func TestWalkWindowHitsWorkspaces(t *testing.T) {
+	tt, err := parseTree(treeFixture)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	hits := walkWindowHits(tt)
+	if len(hits) != 4 {
+		t.Fatalf("got %d hits, want 4: %v", len(hits), hitIDs(hits))
+	}
+	for _, h := range hits {
+		if h.workspace != "1" {
+			t.Errorf("window %d workspace = %q, want \"1\"", h.node.ID, h.workspace)
+		}
+	}
+}
+
+// TestWalkWindowHitsSticky covers the sticky flag decode — a sticky
+// window must carry it so the desktop scope keeps it on every
+// workspace.
+func TestWalkWindowHitsSticky(t *testing.T) {
+	tt, err := parseTree(`{
+      "id": 1, "type": "root",
+      "nodes": [
+        {
+          "id": 2, "type": "workspace", "name": "1",
+          "nodes": [
+            {"id": 10, "type": "con", "name": "a", "app_id": "a",
+             "sticky": true,
+             "rect": {"x":0,"y":0,"width":10,"height":10},
+             "nodes": [], "floating_nodes": [], "focus": []},
+            {"id": 11, "type": "con", "name": "b", "app_id": "b",
+             "rect": {"x":10,"y":0,"width":10,"height":10},
+             "nodes": [], "floating_nodes": [], "focus": []}
+          ],
+          "floating_nodes": [],
+          "focus": [10, 11]
+        }
+      ],
+      "floating_nodes": [], "focus": [2]
+    }`)
+	if err != nil {
+		t.Fatalf("parseTree: %v", err)
+	}
+	hits := walkWindowHits(tt)
+	if len(hits) != 2 {
+		t.Fatalf("got %d hits, want 2", len(hits))
+	}
+	if !hits[0].node.Sticky {
+		t.Error("node 10 must decode sticky=true")
+	}
+	if hits[1].node.Sticky {
+		t.Error("node 11 must decode sticky=false")
+	}
+}
+
+// TestFocusedWorkspaceName pins the get_workspaces decode and the
+// focused-workspace pick.
+func TestFocusedWorkspaceName(t *testing.T) {
+	ws, err := parseWorkspaces(`[
+      {"num": 1, "name": "1", "visible": false, "focused": false},
+      {"num": 2, "name": "2", "visible": true, "focused": true}
+    ]`)
+	if err != nil {
+		t.Fatalf("parseWorkspaces: %v", err)
+	}
+	name := ""
+	for _, w := range ws {
+		if w.Focused {
+			name = w.Name
+		}
+	}
+	if name != "2" {
+		t.Errorf("focused workspace = %q, want \"2\"", name)
+	}
+	if _, err := parseWorkspaces(`not json`); err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}
+
 func TestWindowFields(t *testing.T) {
 	tt, err := parseTree(treeFixture)
 	if err != nil {

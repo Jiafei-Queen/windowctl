@@ -66,7 +66,10 @@ type node struct {
 	Floating      *string   `json:"floating"`
 	Focused       bool      `json:"focused"`
 	Visible       bool      `json:"visible"`
-	WinProps      *winProps `json:"window_properties"`
+	// Sticky marks windows pinned to every workspace (rendered
+	// on all of them) — always kept under the desktop scope.
+	Sticky   bool      `json:"sticky"`
+	WinProps *winProps `json:"window_properties"`
 	Nodes         []*node   `json:"nodes"`
 	FloatingNodes []*node   `json:"floating_nodes"`
 	// Focus lists the child IDs in focus-recency order (most
@@ -150,11 +153,35 @@ func (n *node) app() string {
 // first in floating_nodes, and a click-focus on a second floating
 // window was stamped onto the wrong one before this fix).
 func walkWindows(t *tree) []*node {
-	var out []*node
-	var walk func(n *node)
-	walk = func(n *node) {
+	hits := walkWindowHits(t)
+	out := make([]*node, 0, len(hits))
+	for _, h := range hits {
+		out = append(out, h.node)
+	}
+	return out
+}
+
+// windowHit pairs a window node with the name of the workspace it
+// hangs under — the desktop metadata the desktop-scope filter needs.
+type windowHit struct {
+	node      *node
+	workspace string
+}
+
+// walkWindowHits returns every window node with its owning workspace
+// name, in FOCUS-RECENCY order, frontmost first (the same ordering
+// walkWindows exposes). The workspace name is recorded as the nearest
+// "workspace" ancestor's name and "" when the window hangs directly
+// off the root (defensive — not a layout sway produces).
+func walkWindowHits(t *tree) []windowHit {
+	var out []windowHit
+	var walk func(n *node, ws string)
+	walk = func(n *node, ws string) {
+		if n.Type == "workspace" && n.Name != nil {
+			ws = *n.Name
+		}
 		if n.isWindow() {
-			out = append(out, n)
+			out = append(out, windowHit{node: n, workspace: ws})
 			return
 		}
 		children := make([]*node, 0, len(n.Nodes)+len(n.FloatingNodes))
@@ -168,18 +195,18 @@ func walkWindows(t *tree) []*node {
 		for _, id := range n.Focus {
 			if c := byID[id]; c != nil && !visited[id] {
 				visited[id] = true
-				walk(c)
+				walk(c, ws)
 			}
 		}
 		// Children absent from the focus array (defensive — focus is
 		// documented to cover all children) keep tree order.
 		for _, c := range children {
 			if !visited[c.ID] {
-				walk(c)
+				walk(c, ws)
 			}
 		}
 	}
-	walk(t)
+	walk(t, "")
 	return out
 }
 
@@ -212,21 +239,12 @@ func parseID(windowID string) (int64, error) {
 	return id, nil
 }
 
-// ListWindows enumerates application windows. Bounds are the tree's
-// `rect` — client area + border, excluding the SSD title bar, in
-// absolute screen points (see sway-mechanism.md §6).
-func (b *Backend) ListWindows() ([]core.Window, error) {
-	payload, err := runQuery("get_tree")
-	if err != nil {
-		return nil, err
-	}
-	t, err := parseTree(payload)
-	if err != nil {
-		return nil, err
-	}
-	nodes := walkWindows(t)
-	ws := make([]core.Window, 0, len(nodes))
-	for _, n := range nodes {
+// windowsFromNodes maps window hits to the public Window list. Kept
+// as a pure function so tests exercise the real mapping.
+func windowsFromNodes(hits []windowHit) []core.Window {
+	ws := make([]core.Window, 0, len(hits))
+	for _, h := range hits {
+		n := h.node
 		title := ""
 		if n.Name != nil {
 			title = *n.Name
@@ -243,7 +261,91 @@ func (b *Backend) ListWindows() ([]core.Window, error) {
 			Bounds: core.Rect{X: n.Rect.X, Y: n.Rect.Y, W: n.Rect.Width, H: n.Rect.Height},
 		})
 	}
+	return ws
+}
+
+// ListWindows enumerates application windows. Bounds are the tree's
+// `rect` — client area + border, excluding the SSD title bar, in
+// absolute screen points (see sway-mechanism.md §6).
+func (b *Backend) ListWindows() ([]core.Window, error) {
+	payload, err := runQuery("get_tree")
+	if err != nil {
+		return nil, err
+	}
+	t, err := parseTree(payload)
+	if err != nil {
+		return nil, err
+	}
+	return windowsFromNodes(walkWindowHits(t)), nil
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// SkipMinimized is a no-op: sway has no minimized concept (the
+// scratchpad never appears in get_tree) — the documented platform
+// behavior. CurrentDesktopOnly keeps windows on the workspace
+// sway reports focused (get_workspaces) plus sticky windows.
+func (b *Backend) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	if !filter.CurrentDesktopOnly {
+		return b.ListWindows()
+	}
+	t, err := loadTree()
+	if err != nil {
+		return nil, err
+	}
+	hits := walkWindowHits(t)
+	wsName, err := b.focusedWorkspaceName()
+	if err != nil {
+		return nil, err
+	}
+	// No focused workspace (defensive — get_workspaces always marks
+	// exactly one): degrade to the unfiltered list, the documented
+	// best-effort contract.
+	if wsName == "" {
+		return windowsFromNodes(hits), nil
+	}
+	kept := make([]windowHit, 0, len(hits))
+	for _, h := range hits {
+		if h.workspace == wsName || h.node.Sticky {
+			kept = append(kept, h)
+		}
+	}
+	return windowsFromNodes(kept), nil
+}
+
+// workspace is one element of get_workspaces.
+type workspace struct {
+	Name    string `json:"name"`
+	Focused bool   `json:"focused"`
+}
+
+func parseWorkspaces(payload string) ([]workspace, error) {
+	var ws []workspace
+	if err := json.Unmarshal([]byte(payload), &ws); err != nil {
+		return nil, fmt.Errorf("parse get_workspaces output: %w", err)
+	}
 	return ws, nil
+}
+
+// focusedWorkspaceName returns the focused workspace's name via
+// get_workspaces, "" when none is flagged.
+func (b *Backend) focusedWorkspaceName() (string, error) {
+	payload, err := runQuery("get_workspaces")
+	if err != nil {
+		return "", err
+	}
+	ws, err := parseWorkspaces(payload)
+	if err != nil {
+		return "", err
+	}
+	for _, w := range ws {
+		if w.Focused {
+			return w.Name, nil
+		}
+	}
+	return "", nil
 }
 
 // ListMonitors reports outputs. Focused is the output containing the
