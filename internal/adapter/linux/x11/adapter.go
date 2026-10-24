@@ -22,35 +22,120 @@ type Adapter struct{}
 
 func New() *Adapter { return &Adapter{} }
 
-func (a *Adapter) ListWindows() ([]core.Window, error) {
-	out, err := exec.Command("wmctrl", "-lpG").Output()
+// listWindows enumerates windows via `wmctrl -lpGx` (-x adds the
+// WM_CLASS column). Column order per wmctrl's list_windows source:
+//
+//	ID desktop pid X Y W H WM_CLASS client-machine title...
+//
+// with desktop -1 meaning "all desktops" (sticky). When current is
+// non-nil the list is narrowed to that desktop, keeping sticky
+// windows; nil reports every desktop (the Filter{} contract).
+func (a *Adapter) listWindows(current *int) ([]core.Window, error) {
+	out, err := exec.Command("wmctrl", "-lpGx").Output()
 	if err != nil {
-		return nil, fmt.Errorf("wmctrl -lpG: %w", err)
+		return nil, fmt.Errorf("wmctrl -lpGx: %w", err)
 	}
 	var ws []core.Window
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-		if len(fields) < 9 {
+		w, ok := parseWindowLine(scanner.Text(), current)
+		if !ok {
 			continue
 		}
-		pid, _ := strconv.Atoi(fields[2])
-		x, _ := strconv.Atoi(fields[3])
-		y, _ := strconv.Atoi(fields[4])
-		w, _ := strconv.Atoi(fields[5])
-		h, _ := strconv.Atoi(fields[6])
-		host := fields[7]
-		title := strings.Join(fields[8:], " ")
-		ws = append(ws, core.Window{
-			ID:     fields[0],
-			Title:  title,
-			App:    host,
-			PID:    pid,
-			Bounds: core.Rect{X: x, Y: y, W: w, H: h},
-		})
+		ws = append(ws, w)
 	}
 	return ws, scanner.Err()
+}
+
+func (a *Adapter) ListWindows() ([]core.Window, error) {
+	return a.listWindows(nil)
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// SkipMinimized is unsupported on this backend: reading a window's
+// minimized state needs one `xprop` call per window, an enumeration-
+// halting cost. Documented as a no-op (spec 02).
+func (a *Adapter) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	if !filter.CurrentDesktopOnly {
+		return a.ListWindows()
+	}
+	cur, err := currentDesktop()
+	if err != nil {
+		return nil, err
+	}
+	return a.listWindows(&cur)
+}
+
+// currentDesktop reads the active desktop number from `wmctrl -d`,
+// whose second column carries '*' for the current desktop.
+func currentDesktop() (int, error) {
+	out, err := exec.Command("wmctrl", "-d").Output()
+	if err != nil {
+		return 0, fmt.Errorf("wmctrl -d: %w", err)
+	}
+	return parseCurrentDesktop(string(out))
+}
+
+// parseCurrentDesktop picks the '*'-marked record out of `wmctrl -d`
+// output (lines look like "0 - DG: 1280x1024  VP: 0,0  WA: ... name").
+func parseCurrentDesktop(out string) (int, error) {
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) >= 2 && fields[1] == "*" {
+			n, err := strconv.Atoi(fields[0])
+			if err != nil {
+				break
+			}
+			return n, nil
+		}
+	}
+	return 0, fmt.Errorf("wmctrl -d: no current desktop marked in %q", out)
+}
+
+// parseWindowLine parses one `wmctrl -lpGx` record into a Window. ok
+// is false for malformed lines and — when current is non-nil — for
+// windows outside the current desktop (sticky -1 windows stay).
+func parseWindowLine(line string, current *int) (core.Window, bool) {
+	fields := strings.Fields(line)
+	// Columns: 0=id, 1=desktop, 2=pid, 3..6=geometry, 7=WM_CLASS,
+	// 8=client machine, 9+=title.
+	if len(fields) < 10 {
+		return core.Window{}, false
+	}
+	pid, _ := strconv.Atoi(fields[2])
+	x, _ := strconv.Atoi(fields[3])
+	y, _ := strconv.Atoi(fields[4])
+	w, _ := strconv.Atoi(fields[5])
+	h, _ := strconv.Atoi(fields[6])
+	// The desktop column, previously dropped, is the desktop-scope
+	// filter's input. -1 means "all desktops" (sticky) — always kept.
+	desktop, _ := strconv.Atoi(fields[1])
+	if current != nil && desktop != *current && desktop != -1 {
+		return core.Window{}, false
+	}
+	title := strings.Join(fields[9:], " ")
+	return core.Window{
+		ID:     fields[0],
+		Title:  title,
+		App:    appClass(fields[7]),
+		PID:    pid,
+		Bounds: core.Rect{X: x, Y: y, W: w, H: h},
+	}, true
+}
+
+// appClass extracts the class component of wmctrl's WM_CLASS column
+// ("instance.class"). The class is the application identity every
+// other adapter reports as App (KWin resourceClass, GNOME wm_class),
+// and what App-based matching expects. No dot → the whole column.
+func appClass(s string) string {
+	if i := strings.Index(s, "."); i >= 0 {
+		return s[i+1:]
+	}
+	return s
 }
 
 func (a *Adapter) ListMonitors() ([]core.Monitor, error) {
