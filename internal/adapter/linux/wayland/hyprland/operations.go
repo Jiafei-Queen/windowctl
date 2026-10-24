@@ -36,7 +36,10 @@ type client struct {
 	Fullscreen int    `json:"fullscreen"`
 	Mapped     bool   `json:"mapped"`
 	Hidden     bool   `json:"hidden"`
-	Workspace  struct {
+	// Pinned marks follow-the-user windows, rendered on every
+	// workspace (Hyprland's sticky).
+	Pinned    bool `json:"pinned"`
+	Workspace struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"workspace"`
@@ -104,6 +107,39 @@ func windowsFromClients(cs []client) []core.Window {
 	return ws
 }
 
+// windowsFromClientsOnWorkspace narrows windowsFromClients to the
+// active workspace: clients on other workspaces are dropped. Special
+// workspace clients (negative ids) and pinned windows (rendered on
+// every workspace) always stay. Kept as a pure function like its
+// unfiltered sibling.
+func windowsFromClientsOnWorkspace(cs []client, activeID int) []core.Window {
+	kept := make([]client, 0, len(cs))
+	for i := range cs {
+		c := &cs[i]
+		if !c.isWindow() {
+			continue
+		}
+		if c.Workspace.ID == activeID || c.Workspace.ID < 0 || c.Pinned {
+			kept = append(kept, *c)
+		}
+	}
+	return windowsFromClients(kept)
+}
+
+// activeWorkspace is one record of `hyprctl -j activeworkspace`.
+type activeWorkspace struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+func parseActiveWorkspace(payload string) (activeWorkspace, error) {
+	var aw activeWorkspace
+	if err := json.Unmarshal([]byte(payload), &aw); err != nil {
+		return aw, fmt.Errorf("parse hyprctl activeworkspace: %w", err)
+	}
+	return aw, nil
+}
+
 // ListWindows enumerates application windows in Hyprland's own list
 // order (most-recently-focused first — focusHistoryID order).
 // Bounds are the client's logical box: at + size.
@@ -117,6 +153,42 @@ func (b *Backend) ListWindows() ([]core.Window, error) {
 		return nil, err
 	}
 	return windowsFromClients(cs), nil
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// SkipMinimized is a no-op on this backend: isWindow already drops
+// hidden (minimized) clients — the documented platform behavior.
+// CurrentDesktopOnly aligns clients against `hyprctl activeworkspace`.
+func (b *Backend) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	if !filter.CurrentDesktopOnly {
+		return b.ListWindows()
+	}
+	aw, err := b.activeWorkspace()
+	if err != nil {
+		return nil, err
+	}
+	payload, err := runQuery("clients")
+	if err != nil {
+		return nil, err
+	}
+	cs, err := parseClients(payload)
+	if err != nil {
+		return nil, err
+	}
+	return windowsFromClientsOnWorkspace(cs, aw.ID), nil
+}
+
+// activeWorkspace reads the currently focused workspace via
+// `hyprctl -j activeworkspace`.
+func (b *Backend) activeWorkspace() (activeWorkspace, error) {
+	payload, err := runQuery("activeworkspace")
+	if err != nil {
+		return activeWorkspace{}, err
+	}
+	return parseActiveWorkspace(payload)
 }
 
 // findClient resolves a window ID (Hyprland's address string, e.g.

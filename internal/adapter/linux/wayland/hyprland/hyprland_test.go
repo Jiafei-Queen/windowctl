@@ -96,6 +96,45 @@ func TestListWindowsMapping(t *testing.T) {
 	}
 }
 
+// TestWindowsFromClientsOnWorkspace covers the CurrentDesktopOnly
+// narrowing: same-workspace clients kept, other-workspace dropped,
+// pinned clients and special (negative-id) workspaces always kept.
+func TestWindowsFromClientsOnWorkspace(t *testing.T) {
+	mk := func(addr string, wsID int) client {
+		c := client{Address: addr, Class: "foot", Mapped: true}
+		c.Workspace.ID = wsID
+		return c
+	}
+	cs := []client{
+		mk("on", 1),
+		mk("other", 2),
+		mk("special", -99),
+		func() client { c := mk("pinned", 2); c.Pinned = true; return c }(),
+		func() client { c := mk("hidden", 1); c.Mapped, c.Hidden = false, true; return c }(),
+	}
+	got := windowsFromClientsOnWorkspace(cs, 1)
+	if len(got) != 3 {
+		t.Fatalf("got %d windows (%v), want 3", len(got), got)
+	}
+	if got[0].ID != "on" || got[1].ID != "special" || got[2].ID != "pinned" {
+		t.Errorf("unexpected set: %v", got)
+	}
+}
+
+// TestParseActiveWorkspace pins the activeworkspace decode.
+func TestParseActiveWorkspace(t *testing.T) {
+	aw, err := parseActiveWorkspace(`{"id": 3, "name": "3"}`)
+	if err != nil {
+		t.Fatalf("parseActiveWorkspace: %v", err)
+	}
+	if aw.ID != 3 || aw.Name != "3" {
+		t.Errorf("aw = %+v, want id 3", aw)
+	}
+	if _, err := parseActiveWorkspace(`not json`); err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}
+
 // monitorsFixture mirrors `hyprctl -j monitors` on the VM: the
 // reported width/height are the output MODE's pixels (2336×1261 with
 // scale 2.0 → logical 1168×630), there is no primary flag, and
