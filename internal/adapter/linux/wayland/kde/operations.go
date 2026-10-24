@@ -33,12 +33,30 @@ function __wctl_find(uuid) {
 // filters panels/docks/OSD chrome — the same "application windows
 // only" contract as the darwin adapter's layer-0 filter; type=DIALOG
 // windows are excluded with it, deliberately.
+//
+// Desktop-scope narrowing is driven by two boolean vars the Go side
+// injects ahead of this body (see listWindowsPrologue). The filter
+// semantics follow KWin's scripting API: onAllDesktops windows
+// (pinned/sticky) always count as current, and desktop membership is
+// compared by the VirtualDesktop.id string — not by object identity,
+// because QJSEngine may hand out fresh wrapper objects per property
+// read (the same trap monitorsBody dodges for screen objects).
 const listWindowsBody = findWindowBody + `
 function __wctl_main() {
+    var cur = workspace.currentDesktop;
     var out = [];
     for (var i = 0; i < workspace.stackingOrder.length; i++) {
         var w = workspace.stackingOrder[i];
         if (!w.normalWindow || w.deleted || w.outline) { continue; }
+        if (__wctl_current_desktop_only && !w.onAllDesktops) {
+            var here = false;
+            var ds = w.desktops || [];
+            for (var j = 0; j < ds.length; j++) {
+                if (String(ds[j].id) === String(cur.id)) { here = true; break; }
+            }
+            if (!here) { continue; }
+        }
+        if (__wctl_skip_minimized && w.minimized) { continue; }
         var g = w.frameGeometry;
         out.push({
             id: String(w.internalId),
@@ -146,8 +164,33 @@ function __wctl_main() {
 __wctl_main();
 `
 
+// listWindowsPrologue injects the desktop-scope switches the list
+// body reads as top-level vars. Keeping them out of listWindowsBody
+// lets the plain ListWindows path run the same enumeration with both
+// switches off.
+func listWindowsPrologue(currentDesktopOnly, skipMinimized bool) string {
+	return fmt.Sprintf("var __wctl_current_desktop_only = %t;\nvar __wctl_skip_minimized = %t;\n",
+		currentDesktopOnly, skipMinimized)
+}
+
 func (b *Backend) ListWindows() ([]core.Window, error) {
-	payload, err := b.runScript(listWindowsBody)
+	return b.listWindows(false, false)
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// TODO: workspace.currentDesktop is the focused screen's active
+// desktop. Under KDE's per-screen virtual-desktop mode the precise
+// predicate would be currentDesktopForScreen(w.output); revisit if the
+// default=all-desktops contract ever needs that precision.
+func (b *Backend) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	return b.listWindows(filter.CurrentDesktopOnly, filter.SkipMinimized)
+}
+
+func (b *Backend) listWindows(currentDesktopOnly, skipMinimized bool) ([]core.Window, error) {
+	payload, err := b.runScript(listWindowsPrologue(currentDesktopOnly, skipMinimized) + listWindowsBody)
 	if err != nil {
 		return nil, err
 	}

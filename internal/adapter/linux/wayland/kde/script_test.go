@@ -99,7 +99,8 @@ func TestMoveBodyInjection(t *testing.T) {
 }
 
 // TestListWindowsBodyShape guards the enumeration contract: z-order
-// source, the normalWindow filter, and the braced-UUID ID form.
+// source, the normalWindow filter, and the braced-UUID ID form — plus
+// the desktop-scope narrowing driven by the injected switches.
 func TestListWindowsBodyShape(t *testing.T) {
 	for _, want := range []string{
 		"workspace.stackingOrder.length",
@@ -108,10 +109,25 @@ func TestListWindowsBodyShape(t *testing.T) {
 		"title: w.caption",
 		"app: w.resourceClass",
 		"var g = w.frameGeometry;",
+		"workspace.currentDesktop",
+		"!w.onAllDesktops",
+		"String(ds[j].id) === String(cur.id)",
+		"__wctl_skip_minimized && w.minimized",
 	} {
 		if !strings.Contains(listWindowsBody, want) {
 			t.Errorf("listWindowsBody missing %q", want)
 		}
+	}
+}
+
+// TestListWindowsPrologueInjection verifies the switches arrive as the
+// top-level boolean vars the body reads.
+func TestListWindowsPrologueInjection(t *testing.T) {
+	if got := listWindowsPrologue(true, false); got != "var __wctl_current_desktop_only = true;\nvar __wctl_skip_minimized = false;\n" {
+		t.Errorf("prologue(true,false) = %q", got)
+	}
+	if got := listWindowsPrologue(false, true); got != "var __wctl_current_desktop_only = false;\nvar __wctl_skip_minimized = true;\n" {
+		t.Errorf("prologue(false,true) = %q", got)
 	}
 }
 
