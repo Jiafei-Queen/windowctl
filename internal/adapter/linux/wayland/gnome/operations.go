@@ -27,6 +27,15 @@ type windowEntry struct {
 	Y      int    `json:"y"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
+	// WorkspaceIndex is the window's workspace index. A pointer so an
+	// extension predating the field decodes as nil (reported -1 is a
+	// legitimate "not yet placed" value, distinct from absent).
+	WorkspaceIndex *int `json:"workspaceIndex"`
+	// OnAllWorkspaces marks pinned windows, which always count as
+	// current-desktop. OnAllWorkspaces/Minimized default to false for
+	// old extensions, matching their semantics.
+	OnAllWorkspaces bool `json:"onAllWorkspaces"`
+	Minimized       bool `json:"minimized"`
 }
 
 type monitorEntry struct {
@@ -49,20 +58,40 @@ type scaleEntry struct {
 	Scale float64 `json:"scale"`
 }
 
-// parseWindows decodes a ListWindows reply into core.Windows.
-func parseWindows(payload string) ([]core.Window, error) {
+// listWindowEntries decodes the raw ListWindows reply, including the
+// desktop metadata the plain parseWindows discards. The second return
+// is the extension-reported active workspace index (nil when the
+// running extension predates the field).
+func listWindowEntries(payload string) ([]windowEntry, *int, error) {
 	var rep struct {
 		report
-		Windows []windowEntry `json:"windows"`
+		Windows               []windowEntry `json:"windows"`
+		CurrentWorkspaceIndex *int          `json:"currentWorkspaceIndex"`
 	}
 	if err := json.Unmarshal([]byte(payload), &rep); err != nil {
-		return nil, fmt.Errorf("gnome: parse window report: %w", err)
+		return nil, nil, fmt.Errorf("gnome: parse window report: %w", err)
 	}
 	if !rep.OK {
-		return nil, fmt.Errorf("gnome: list windows: %s", rep.Error)
+		return nil, nil, fmt.Errorf("gnome: list windows: %s", rep.Error)
 	}
-	ws := make([]core.Window, 0, len(rep.Windows))
-	for _, w := range rep.Windows {
+	return rep.Windows, rep.CurrentWorkspaceIndex, nil
+}
+
+// parseWindows decodes a ListWindows reply into core.Windows.
+func parseWindows(payload string) ([]core.Window, error) {
+	entries, _, err := listWindowEntries(payload)
+	if err != nil {
+		return nil, err
+	}
+	return windowsFromEntries(entries), nil
+}
+
+// windowsFromEntries maps extension entries to core.Windows. Kept
+// separate from parsing so the filtered path shares the mapping
+// (mirroring hyprland's windowsFromClients pattern).
+func windowsFromEntries(entries []windowEntry) []core.Window {
+	ws := make([]core.Window, 0, len(entries))
+	for _, w := range entries {
 		ws = append(ws, core.Window{
 			ID:     w.ID,
 			Title:  w.Title,
@@ -71,7 +100,7 @@ func parseWindows(payload string) ([]core.Window, error) {
 			Bounds: core.Rect{X: w.X, Y: w.Y, W: w.Width, H: w.Height},
 		})
 	}
-	return ws, nil
+	return ws
 }
 
 // parseMonitors decodes a ListMonitors reply into core.Monitors.
@@ -129,6 +158,62 @@ func (b *Backend) ListWindows() ([]core.Window, error) {
 		return nil, err
 	}
 	return parseWindows(payload)
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// Backward compatibility: when the running extension predates the
+// workspace fields (no currentWorkspaceIndex in the reply), the
+// desktop filter cannot be honored and degrades to returning
+// everything — the same best-effort contract the Filter docs promise.
+// ensureInstalled copies the newer embedded sources over the old ones,
+// so the degrade window is one session (see install.go).
+func (b *Backend) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	payload, err := b.call("ListWindows")
+	if err != nil {
+		return nil, err
+	}
+	entries, current, err := listWindowEntries(payload)
+	if err != nil {
+		return nil, err
+	}
+	if filter.CurrentDesktopOnly {
+		entries = keepCurrentWorkspace(entries, current)
+	}
+	if filter.SkipMinimized {
+		entries = dropMinimized(entries)
+	}
+	return windowsFromEntries(entries), nil
+}
+
+// keepCurrentWorkspace keeps sticky (on-all-workspaces) windows and
+// windows whose workspace index matches the extension-reported active
+// one. "Unknown" entries — per-window index absent, current absent —
+// are kept: the desktop scope is best-effort, never a hard failure.
+func keepCurrentWorkspace(entries []windowEntry, current *int) []windowEntry {
+	if current == nil {
+		return entries
+	}
+	kept := make([]windowEntry, 0, len(entries))
+	for _, w := range entries {
+		if w.OnAllWorkspaces || w.WorkspaceIndex == nil || *w.WorkspaceIndex == *current {
+			kept = append(kept, w)
+		}
+	}
+	return kept
+}
+
+// dropMinimized drops entries the extension flagged minimized.
+func dropMinimized(entries []windowEntry) []windowEntry {
+	kept := make([]windowEntry, 0, len(entries))
+	for _, w := range entries {
+		if !w.Minimized {
+			kept = append(kept, w)
+		}
+	}
+	return kept
 }
 
 func (b *Backend) ListMonitors() ([]core.Monitor, error) {

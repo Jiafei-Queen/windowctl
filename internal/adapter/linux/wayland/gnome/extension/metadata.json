@@ -4,5 +4,5 @@
   "description": "Resident D-Bus service exposing window management to the windowctl CLI (docs/wayland/design.md §8 P2).",
   "shell-version": ["48"],
   "session-modes": ["user", "unlock-dialog"],
-  "version": 1
+  "version": 2
 }

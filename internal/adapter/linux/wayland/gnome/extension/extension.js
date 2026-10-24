@@ -74,8 +74,16 @@ function findWindow(id) {
 
 // windowReply mirrors the KDE window report: logical frame geometry in
 // the same point space as every other windowctl API.
+//
+// workspaceIndex / onAllWorkspaces / minimized carry the desktop
+// metadata the Go side filters on (core.Filter.CurrentDesktopOnly /
+// SkipMinimized) — reported per window, filtering stays Go-side so the
+// D-Bus method shapes stay stable. -1 marks "no workspace" (window not
+// yet placed); a window pinned to all workspaces reports
+// onAllWorkspaces:true and always counts as current desktop.
 function windowReply(w) {
     const f = w.get_frame_rect();
+    const ws = w.get_workspace();
     return {
         id: String(w.get_stable_sequence()),
         title: w.get_title(),
@@ -85,17 +93,26 @@ function windowReply(w) {
         y: Math.round(f.y),
         width: Math.round(f.width),
         height: Math.round(f.height),
+        workspaceIndex: ws ? ws.index() : -1,
+        onAllWorkspaces: w.is_on_all_workspaces(),
+        minimized: w.minimized,
     };
 }
 
 function listWindows() {
     // type NORMAL filters docks/panels/dialogs — the same
     // "application windows only" contract as KWin's normalWindow.
+    // currentWorkspaceIndex is the active workspace the Go side
+    // compares each window's workspaceIndex against.
     const windows = global.get_window_actors()
         .map(a => a.meta_window)
         .filter(w => w.get_window_type() === Meta.WindowType.NORMAL)
         .map(windowReply);
-    return { ok: true, windows };
+    return {
+        ok: true,
+        currentWorkspaceIndex: global.workspace_manager.get_active_workspace().index(),
+        windows,
+    };
 }
 
 // listMonitors stamps the same Primary/Focused/Active flags the KDE

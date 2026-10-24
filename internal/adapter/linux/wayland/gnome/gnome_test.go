@@ -127,6 +127,82 @@ func TestIsNotFound(t *testing.T) {
 	}
 }
 
+// TestKeepCurrentWorkspace covers the desktop-scope predicate: the
+// active workspace's windows are kept, other workspaces' dropped, and
+// sticky / unknown entries always kept.
+func TestKeepCurrentWorkspace(t *testing.T) {
+	one, three := 1, 3
+	entries := []windowEntry{
+		{ID: "1", WorkspaceIndex: &one, OnAllWorkspaces: false},
+		{ID: "2", WorkspaceIndex: &three, OnAllWorkspaces: false},
+		{ID: "3", WorkspaceIndex: &three, OnAllWorkspaces: true},
+		{ID: "4", WorkspaceIndex: &one, OnAllWorkspaces: true},
+		{ID: "5", WorkspaceIndex: nil},
+	}
+	// current=1: keep 1 (match), 3 (sticky), 4 (sticky), 5 (unknown).
+	got := keepCurrentWorkspace(entries, &one)
+	if len(got) != 4 || got[0].ID != "1" || got[1].ID != "3" || got[2].ID != "4" || got[3].ID != "5" {
+		t.Errorf("keepCurrentWorkspace(current=1) = %v, want [1 3 4 5]", ids(got))
+	}
+	// nil current (old extension) → unchanged, full list.
+	got = keepCurrentWorkspace(entries, nil)
+	if len(got) != 5 {
+		t.Errorf("keepCurrentWorkspace(nil) kept %d of 5 entries, want 5", len(got))
+	}
+}
+
+// TestDropMinimized covers SkipMinimized: flagged entries dropped,
+// everything else kept in order.
+func TestDropMinimized(t *testing.T) {
+	entries := []windowEntry{
+		{ID: "1", Minimized: true},
+		{ID: "2"},
+		{ID: "3", Minimized: true},
+	}
+	got := dropMinimized(entries)
+	if len(got) != 1 || got[0].ID != "2" {
+		t.Errorf("dropMinimized = %v, want [2]", ids(got))
+	}
+}
+
+func ids(entries []windowEntry) []string {
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, e.ID)
+	}
+	return out
+}
+
+// TestListWindowEntriesWorkspaceMetadata pins the desktop-metadata
+// contract: currentWorkspaceIndex and per-window fields decode, and
+// absent fields (old extension) decode as nil/false.
+func TestListWindowEntriesWorkspaceMetadata(t *testing.T) {
+	payload := `{"ok":true,"currentWorkspaceIndex":2,"windows":[
+		{"id":"9","workspaceIndex":2,"onAllWorkspaces":true,"minimized":false},
+		{"id":"8","workspaceIndex":1,"onAllWorkspaces":false,"minimized":true}]}`
+	entries, current, err := listWindowEntries(payload)
+	if err != nil {
+		t.Fatalf("listWindowEntries: %v", err)
+	}
+	if current == nil || *current != 2 {
+		t.Errorf("current = %v, want 2", current)
+	}
+	if entries[0].WorkspaceIndex == nil || *entries[0].WorkspaceIndex != 2 || !entries[0].OnAllWorkspaces {
+		t.Errorf("entry[0] = %+v, want workspace 2 sticky", entries[0])
+	}
+	if !entries[1].Minimized || entries[1].OnAllWorkspaces {
+		t.Errorf("entry[1] = %+v, want minimized, not sticky", entries[1])
+	}
+	// Old extension: neither field present.
+	entries, current, err = listWindowEntries(`{"ok":true,"windows":[{"id":"9"}]}`)
+	if err != nil {
+		t.Fatalf("listWindowEntries legacy: %v", err)
+	}
+	if current != nil || entries[0].WorkspaceIndex != nil || entries[0].Minimized || entries[0].OnAllWorkspaces {
+		t.Errorf("legacy decode = %v current=%v, want all-zero workspace metadata", entries, current)
+	}
+}
+
 func TestParseStringVariant(t *testing.T) {
 	cases := []struct {
 		in   string
