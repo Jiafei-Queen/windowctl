@@ -52,6 +52,27 @@ type Rect struct {
 type Filter struct {
 	Title string
 	App   string
+
+	// Desktop scope. Default (false) returns windows from every
+	// virtual desktop / workspace / Space — the "all currently open
+	// windows" contract of spec 02. Setting it to true narrows the
+	// enumeration to windows on the user's current virtual desktop,
+	// decided inside the platform adapter (each compositor / OS
+	// reports desktop membership differently, so the public layer
+	// cannot post-filter this). Windows pinned on all desktops
+	// (sticky / onAllDesktops) always count as current.
+	//
+	// Implementations are best-effort where the OS only exposes a
+	// boolean is-on-current-desktop (Windows) or none at all: an
+	// adapter that cannot honor it documents that in its own code and
+	// degrades to the unfiltered behavior.
+	CurrentDesktopOnly bool
+
+	// SkipMinimized drops minimized windows from the result when true.
+	// Best-effort by platform: honored on darwin / windows / KDE /
+	// GNOME / Hyprland, unsupported on X11 and sway (documented in
+	// spec 02), where the flag is ignored.
+	SkipMinimized bool
 }
 
 type Match struct {

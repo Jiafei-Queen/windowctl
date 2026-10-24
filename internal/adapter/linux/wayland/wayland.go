@@ -103,6 +103,28 @@ func (a *Adapter) ListWindows() ([]core.Window, error) {
 	return a.backend.ListWindows()
 }
 
+// filteredBackend is the optional capability a compositor Backend may
+// implement to honor the desktop-scope Filter fields
+// (CurrentDesktopOnly / SkipMinimized) inside the compositor, where
+// the desktop membership knowledge lives.
+type filteredBackend interface {
+	ListWindowsFiltered(filter core.Filter) ([]core.Window, error)
+}
+
+// ListWindowsFiltered implements the optional core.FilteredWindowLister
+// capability for the Wayland adapter. Backends without the capability
+// degrade to the plain enumeration (windows from all desktops,
+// minimized included) — the documented best-effort contract.
+func (a *Adapter) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	if a.backend == nil {
+		return nil, a.unsupported()
+	}
+	if fb, ok := a.backend.(filteredBackend); ok {
+		return fb.ListWindowsFiltered(filter)
+	}
+	return a.backend.ListWindows()
+}
+
 func (a *Adapter) ListMonitors() ([]core.Monitor, error) {
 	if a.backend == nil {
 		return nil, a.unsupported()

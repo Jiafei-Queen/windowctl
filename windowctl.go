@@ -199,7 +199,7 @@ func moveCoordsWith(a Adapter, match Match, monitorID *int, bounds Rect) error {
 }
 
 func listWindowsWith(a Adapter, filter Filter) ([]Window, error) {
-	ws, err := a.ListWindows()
+	ws, err := listWindowsFromAdapter(a, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +214,22 @@ func listWindowsWith(a Adapter, filter Filter) ([]Window, error) {
 		stampFocused(ws, monitors)
 	}
 	return applyFilter(ws, filter), nil
+}
+
+// listWindowsFromAdapter fetches the raw (unfiltered) window list for
+// listWindowsWith. When the filter carries desktop-scope fields and the
+// adapter reports the optional FilteredWindowLister capability, the
+// narrowing happens adapter-side — that is the only place the OS's
+// desktop membership knowledge lives. Otherwise the plain
+// parameterless ListWindows path is used, which must honor the
+// zero-value Filter{} semantics (all desktops, minimized included).
+func listWindowsFromAdapter(a Adapter, filter Filter) ([]Window, error) {
+	if filter.CurrentDesktopOnly || filter.SkipMinimized {
+		if fl, ok := a.(core.FilteredWindowLister); ok {
+			return fl.ListWindowsFiltered(filter)
+		}
+	}
+	return a.ListWindows()
 }
 
 // stampMonitor sets each window's Monitor field to the 1-indexed ID of

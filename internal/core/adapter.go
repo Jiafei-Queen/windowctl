@@ -33,6 +33,21 @@ var ErrAccessibilityDenied = errors.New("Accessibility permission denied — run
 // opt-in, manual grant is the fallback.
 var ErrScreenCaptureDenied = errors.New("Screen Recording permission denied — run 'windowctl permissions --screen' to grant, or grant manually in System Settings → Privacy & Security → Screen Recording, then re-run")
 
+// FilteredWindowLister is an optional capability an Adapter may
+// implement to honor the desktop-scope fields of core.Filter
+// (CurrentDesktopOnly / SkipMinimized). The base Adapter interface
+// stays parameterless — adapters that don't implement this (older or
+// less capable platforms) keep working with the zero-value Filter{}
+// behavior, which every adapter must honor: windows from all desktops,
+// minimized included.
+//
+// Implementations must honor ONLY the desktop-scope fields and ignore
+// Title / App: text matching remains the public layer's applyFilter
+// job, applied uniformly after any adapter-level desktop narrowing.
+type FilteredWindowLister interface {
+	ListWindowsFiltered(filter Filter) ([]Window, error)
+}
+
 type Adapter interface {
 	ListWindows() ([]Window, error)
 	ListMonitors() ([]Monitor, error)

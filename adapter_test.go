@@ -249,6 +249,87 @@ func TestListWindowsFocusedNoOpWhenNoMonitorFocused(t *testing.T) {
 	}
 }
 
+// filteredMockAdapter pairs mockAdapter with the optional
+// FilteredWindowLister capability, so the dispatch tests below can
+// prove which path the public layer routes through.
+type filteredMockAdapter struct {
+	mockAdapter
+	filteredCalled int
+	lastFilter     Filter
+	filteredWins   []Window
+}
+
+func (m *filteredMockAdapter) ListWindowsFiltered(f Filter) ([]Window, error) {
+	m.filteredCalled++
+	m.lastFilter = f
+	return m.filteredWins, nil
+}
+
+// TestListWindowsDispatchesToFilteredAdapter covers the desktop-scope
+// contract: when the filter carries CurrentDesktopOnly / SkipMinimized
+// and the adapter implements FilteredWindowLister, the narrowing must
+// happen adapter-side — including receiving the full Filter untouched
+// (Title/App stay the public applyFilter's job).
+func TestListWindowsDispatchesToFilteredAdapter(t *testing.T) {
+	a := &filteredMockAdapter{
+		filteredWins: []Window{
+			{ID: "w1", Title: "current-desktop win", App: "X", Bounds: Rect{X: 100, Y: 100, W: 800, H: 600}},
+		},
+	}
+	f := Filter{Title: "current", CurrentDesktopOnly: true, SkipMinimized: true}
+	out, err := listWindowsWith(a, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.filteredCalled != 1 {
+		t.Fatalf("ListWindowsFiltered must be called once, got %d", a.filteredCalled)
+	}
+	if a.lastFilter != f {
+		t.Errorf("adapter must receive the full filter, got %+v want %+v", a.lastFilter, f)
+	}
+	if len(out) != 1 || out[0].ID != "w1" {
+		t.Errorf("unexpected result: %+v", out)
+	}
+	// Title/App are filtered by the public layer after stamping, not
+	// by the adapter — prove applyFilter still runs on the filtered
+	// list by asking for a title that matches nothing.
+	out, err = listWindowsWith(a, Filter{Title: "no-such-title", CurrentDesktopOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 0 {
+		t.Errorf("applyFilter must still apply after adapter narrowing: %+v", out)
+	}
+}
+
+// TestListWindowsFallsBackWhenAdapterLacksCapability covers adapters
+// that don't implement FilteredWindowLister: the desktop-scope fields
+// are dropped (best-effort degrade, documented in spec 02) and the
+// plain parameterless path keeps working.
+func TestListWindowsFallsBackWhenAdapterLacksCapability(t *testing.T) {
+	a := &mockAdapter{windows: sampleWindows()}
+	out, err := listWindowsWith(a, Filter{CurrentDesktopOnly: true, SkipMinimized: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 3 {
+		t.Fatalf("expected fallback to unfiltered list (3 windows), got %d", len(out))
+	}
+}
+
+// TestListWindowsZeroFilterUsesPlainPath guards against routing the
+// common Filter{} case through the filtered path: the desktop-scope
+// call must not happen when no desktop-scope field is set.
+func TestListWindowsZeroFilterUsesPlainPath(t *testing.T) {
+	a := &filteredMockAdapter{mockAdapter: mockAdapter{windows: sampleWindows()}}
+	if _, err := listWindowsWith(a, Filter{}); err != nil {
+		t.Fatal(err)
+	}
+	if a.filteredCalled != 0 {
+		t.Errorf("Filter{} must use the plain ListWindows path, but ListWindowsFiltered was called")
+	}
+}
+
 func TestMoveDelegatesToAdapter(t *testing.T) {
 	a := &mockAdapter{windows: sampleWindows()}
 	if err := moveWith(a, Match{Title: "chrome"}, Target{Bounds: Rect{X: 10, Y: 20, W: 100, H: 200}}); err != nil {
