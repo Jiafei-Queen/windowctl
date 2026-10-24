@@ -62,6 +62,24 @@ type Adapter struct{}
 func New() *Adapter { return &Adapter{} }
 
 func (a *Adapter) ListWindows() ([]core.Window, error) {
+	return a.listWindows(true, false)
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// CurrentDesktopOnly re-enables the shell-cloak exclusion: windows on
+// other virtual desktops stay WS_VISIBLE but are DWM-cloaked with
+// CLOAKED_SHELL, which is exactly the signal listable needs (see
+// fidelity.go). SkipMinimized drops IsIconic windows.
+func (a *Adapter) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	return a.listWindows(!filter.CurrentDesktopOnly, filter.SkipMinimized)
+}
+
+// listWindows enumerates top-level windows. allDesktops controls the
+// shell-cloak scope (see listable); skipMinimized drops iconic windows.
+func (a *Adapter) listWindows(allDesktops, skipMinimized bool) ([]core.Window, error) {
 	var out []core.Window
 	cb := syscall.NewCallback(func(hwnd uintptr, _ uintptr) uintptr {
 		visible, _, _ := procIsWindowVisible.Call(hwnd)
@@ -78,7 +96,10 @@ func (a *Adapter) ListWindows() ([]core.Window, error) {
 
 		// IsWindowVisible is necessary but not sufficient: it is true for
 		// compositor-cloaked UWP apps, tool palettes, and the desktop itself.
-		if !listable(hwnd, title) {
+		if !listable(hwnd, title, allDesktops) {
+			return 1
+		}
+		if skipMinimized && isMinimised(hwnd) {
 			return 1
 		}
 

@@ -31,6 +31,19 @@ const (
 	// a maximised window reports a negative origin.
 	dwmwaExtendedFrameBounds = 9
 
+	// DWMWA_CLOAKED reason codes (dwmapi.h). Why a window is cloaked
+	// decides whether it belongs in the window list:
+	//   - cloakedApp: a suspended UWP app — dead weight, never list it.
+	//   - cloakedShell: the shell cloaks windows that sit on another
+	//     virtual desktop (they keep WS_VISIBLE). This is the signal
+	//     that distinguishes "another desktop" from "unlistable", so
+	//     the all-desktops enumeration must INCLUDE these.
+	//   - cloakedInherited: cloaked because its owner chain is.
+	//     Conservative: keep excluded in every scope.
+	cloakedApp       = 1
+	cloakedShell     = 2
+	cloakedInherited = 4
+
 	// gwlExStyle is negative in the Win32 headers; as an argument it travels as
 	// a two's-complement uintptr.
 	gwlExStyle      = ^uintptr(19) // -20
@@ -146,13 +159,18 @@ func layoutBounds(hwnd uintptr) core.Rect {
 	}
 }
 
-// isCloaked reports a window hidden by the compositor rather than by style.
-func isCloaked(hwnd uintptr) bool {
+// cloakReason reports the raw DWMWA_CLOAKED value: 0 when the window
+// is uncloaked or the attribute cannot be read (defensive — an
+// unreadable state must not silently drop windows from every list).
+func cloakReason(hwnd uintptr) uint32 {
 	var cloaked uint32
 	ret, _, _ := procDwmGetWindowAttribute.Call(
 		hwnd, dwmwaCloaked,
 		uintptr(unsafe.Pointer(&cloaked)), unsafe.Sizeof(cloaked))
-	return ret == 0 && cloaked != 0
+	if ret != 0 {
+		return 0
+	}
+	return cloaked
 }
 
 func isMinimised(hwnd uintptr) bool {
@@ -168,8 +186,27 @@ func isToolWindow(hwnd uintptr) bool {
 }
 
 // listable decides whether a window belongs in ListWindows.
-func listable(hwnd uintptr, title string) bool {
-	if title == "" || isCloaked(hwnd) || isToolWindow(hwnd) {
+//
+// Cloaks are judged by reason, not mere presence: a suspended-UWP
+// cloak (cloakedApp) is dead weight in every scope, while a shell
+// cloak (cloakedShell) only means "on another virtual desktop" —
+// included when the caller enumerates all desktops (includeShell
+// true), excluded from the current-desktop scope.
+func listable(hwnd uintptr, title string, includeShell bool) bool {
+	if title == "" || isToolWindow(hwnd) {
+		return false
+	}
+	switch cloakReason(hwnd) {
+	case 0:
+		// uncloaked (or unreadable — see cloakReason): listable.
+	case cloakedShell:
+		if !includeShell {
+			return false
+		}
+	case cloakedApp, cloakedInherited:
+		return false
+	default:
+		// Unknown cloak reason: conservatively treat as hidden.
 		return false
 	}
 	// The shell's desktop window is always present and never interesting.
