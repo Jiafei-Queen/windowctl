@@ -125,13 +125,21 @@ static int wctl_dict_bounds(CFDictionaryRef d, CFStringRef key,
     return 1;
 }
 
-// Collect all on-screen windows. Returns count (>= 0) on success or -1 on
-// failure. On success *out is a malloc'd array of `count` entries; free
-// with wctl_free_windows(out, count).
-static int wctl_collect_windows(wctl_window_t** out) {
+// Collect windows. allSpaces selects the CG enumeration scope:
+// 0 = kCGWindowListOptionOnScreenOnly (current Space only — the
+// historical behavior), 1 = kCGWindowListOptionAll (every Space, and
+// minimized windows, which are never onscreen). skipMinimized drops
+// windows whose kCGWindowIsOnscreen flag is false (only meaningful in
+// the All-Spaces scope — OnScreenOnly entries are onscreen by
+// definition). Returns count (>= 0) on success or -1 on failure. On
+// success *out is a malloc'd array of `count` entries; free with
+// wctl_free_windows(out, count).
+static int wctl_collect_windows(wctl_window_t** out, int allSpaces,
+                                int skipMinimized) {
     *out = NULL;
     CFArrayRef arr = CGWindowListCopyWindowInfo(
-        kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
+        (allSpaces ? kCGWindowListOptionAll : kCGWindowListOptionOnScreenOnly)
+            | kCGWindowListExcludeDesktopElements,
         kCGNullWindowID
     );
     if (arr == NULL) return -1;
@@ -152,6 +160,7 @@ static int wctl_collect_windows(wctl_window_t** out) {
     CFStringRef k_owner  = CFSTR("kCGWindowOwnerName");
     CFStringRef k_bounds = CFSTR("kCGWindowBounds");
     CFStringRef k_layer  = CFSTR("kCGWindowLayer");
+    CFStringRef k_onscreen = CFSTR("kCGWindowIsOnscreen");
 
     int out_count = 0;
     for (CFIndex i = 0; i < n; i++) {
@@ -165,6 +174,17 @@ static int wctl_collect_windows(wctl_window_t** out) {
         // shows only real app windows. Mirrors the cut already used
         // by wctl_frontmost_window_bounds.
         if (wctl_dict_long(d, k_layer) != 0) continue;
+
+        // Minimized windows (never onscreen) only show up in the
+        // All-Spaces scope. An absent flag keeps the window — the
+        // best-effort contract, never a hard failure.
+        if (skipMinimized) {
+            CFTypeRef v = CFDictionaryGetValue(d, k_onscreen);
+            if (v != NULL && CFGetTypeID(v) == CFBooleanGetTypeID() &&
+                !CFBooleanGetValue((CFBooleanRef)v)) {
+                continue;
+            }
+        }
 
         ws[out_count].id     = wctl_dict_long(d, k_num);
         ws[out_count].pid    = wctl_dict_long(d, k_pid);
@@ -758,9 +778,28 @@ type Adapter struct{}
 
 func New() *Adapter { return &Adapter{} }
 
+// ListWindows enumerates every application window across all Spaces —
+// the "all currently open windows" contract of spec 02. Minimized
+// windows are included; SkipMinimized (ListWindowsFiltered) drops
+// them.
 func (a *Adapter) ListWindows() ([]core.Window, error) {
+	return a.listWindows(true, false)
+}
+
+// ListWindowsFiltered implements the optional desktop-scope capability
+// (core.FilteredWindowLister). Only CurrentDesktopOnly / SkipMinimized
+// are honored here — Title / App remain the public layer's job.
+//
+// CurrentDesktopOnly switches back to the OnScreenOnly enumeration,
+// whose CG-level semantics are exactly "current Space" — the behavior
+// ListWindows had before the all-Spaces path existed.
+func (a *Adapter) ListWindowsFiltered(filter core.Filter) ([]core.Window, error) {
+	return a.listWindows(!filter.CurrentDesktopOnly, filter.SkipMinimized)
+}
+
+func (a *Adapter) listWindows(allSpaces, skipMinimized bool) ([]core.Window, error) {
 	var raw *C.wctl_window_t
-	n := int(C.wctl_collect_windows(&raw))
+	n := int(C.wctl_collect_windows(&raw, C.int(boolFlag(allSpaces)), C.int(boolFlag(skipMinimized))))
 	if n < 0 {
 		return nil, fmt.Errorf("CGWindowListCopyWindowInfo failed")
 	}
@@ -789,6 +828,15 @@ func (a *Adapter) ListWindows() ([]core.Window, error) {
 		out = append(out, w)
 	}
 	return out, nil
+}
+
+// boolFlag converts a Go bool to the C int flag the collection helper
+// takes.
+func boolFlag(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func (a *Adapter) ListMonitors() ([]core.Monitor, error) {
