@@ -11,3 +11,4 @@ windowctl
 /npm/platforms/*/bin/windowctl.exe
 /.claude/
 coverage.out
+/tmp
