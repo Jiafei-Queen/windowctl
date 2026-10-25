@@ -1,6 +1,6 @@
 {
   "name": "@muthuishere/windowctl",
-  "version": "0.6.0",
+  "version": "0.6.1-beta.0",
   "description": "Cross-platform CLI for managing desktop windows and monitors (macOS, Linux, Windows).",
   "keywords": [
     "windowctl",
@@ -30,11 +30,11 @@
     "README.md"
   ],
   "optionalDependencies": {
-    "@muthuishere/windowctl-darwin-arm64": "0.6.0",
-    "@muthuishere/windowctl-darwin-x64": "0.6.0",
-    "@muthuishere/windowctl-linux-arm64": "0.6.0",
-    "@muthuishere/windowctl-linux-x64": "0.6.0",
-    "@muthuishere/windowctl-windows-x64": "0.6.0"
+    "@muthuishere/windowctl-darwin-arm64": "0.6.1-beta.0",
+    "@muthuishere/windowctl-darwin-x64": "0.6.1-beta.0",
+    "@muthuishere/windowctl-linux-arm64": "0.6.1-beta.0",
+    "@muthuishere/windowctl-linux-x64": "0.6.1-beta.0",
+    "@muthuishere/windowctl-windows-x64": "0.6.1-beta.0"
   },
   "os": [
     "darwin",

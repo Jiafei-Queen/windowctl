@@ -1,6 +1,6 @@
 {
   "name": "@muthuishere/windowctl-windows-x64",
-  "version": "0.6.0",
+  "version": "0.6.1-beta.0",
   "description": "windowctl prebuilt binary for windows-x64",
   "repository": {
     "type": "git",
