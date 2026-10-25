@@ -47,6 +47,8 @@ Go 进程                                    KWin
 ## 3. 窗口枚举（已验证）
 
 ```js
+// 仅演示 stackingOrder 的遍历方式（自底向上）——适配器实际用的
+// 是倒序 + 活动窗口置首，见 §3.1。
 for (var i = 0; i < workspace.stackingOrder.length; i++) {
     var w = workspace.stackingOrder[i];
     if (!w.normalWindow || w.deleted || w.outline) continue;
@@ -63,6 +65,36 @@ for (var i = 0; i < workspace.stackingOrder.length; i++) {
 - `frameGeometry` 是**含边框**的几何，与 wmctrl/darwin/windows 的
   frame 语义一致。
 - 属性可以是小数（实测 `x=17.7`），Go 侧 `Math.round` 取整。
+
+### 3.1 列表序：必须是 frontmost-first（2026-10 实测并修复）
+
+公共层的 `stampFocused` 取"落在 focused 屏上的**第一个**窗口"盖
+`Focused`，所以适配器必须返回 **frontmost-first**。而
+`stackingOrder` 是**自底向上**的，直接照抄它会让 `Focused` 永远落在
+**最底下**那个窗口上——KDE 上曾因此把 `type`/`key` 的焦点校验打成
+2s 超时（`input NOT sent`），整条"安全输入路径"不可用。
+
+修法两步（`listWindowsBody`）：
+
+1. **倒序**遍历 `stackingOrder`（`for (var i = so.length - 1; i >= 0; i--)`）
+   → 得到 frontmost-first；
+2. **把 `workspace.activeWindow` 提到列表首位**。
+
+第 2 步不能省：**KWin 的活动窗口不一定是最顶层的那个**。实测采样到
+"konsole 是活动窗口、而 Vmware 压在它上面"的状态；只倒序的话
+`Focused` 仍然盖错窗口。
+
+顺带验证的事实：
+
+- `workspace.activeWindow = w`（`Focus` 用的写法）**会** raise 窗口
+  ——所以刚 focus 完 active == topmost，但一般情况下不成立。
+- 每个窗口还有 `w.active` 布尔字段，与 `workspace.activeWindow`
+  一致，可作为交叉校验。
+
+其他后端（darwin `CGWindowListCopyWindowInfo`、windows
+`EnumWindows`、sway 容器 `focus` 数组、hyprland `focusHistoryID`）
+本来就是 frontmost-first —— 这条约定是**跨适配器**的，sway 当初也
+踩过同一个坑（见 `sway-mechanism.md` §11）。
 
 ## 4. 移动窗口：三个失败写法 + 一个正确写法（全部实测）
 

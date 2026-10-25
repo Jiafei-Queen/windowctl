@@ -14,10 +14,11 @@ type Window struct {
 	// (the window's centroid does not lie within any reported display).
 	// Stamped by the public listWindowsWith path, not by adapters.
 	Monitor int
-	// Focused is true when this window is the frontmost on the focused
-	// monitor — i.e. the topmost (z-ordered) window whose centroid
-	// lies on the monitor flagged Focused. Stamped by the public
-	// listWindowsWith path.
+	// Focused is true for the OS's active (key) window — the one that
+	// owns the keyboard. Its centroid lies on the monitor flagged
+	// Focused, so the two always agree. Stamped by the public
+	// listWindowsWith path, which takes the first window in the
+	// adapter's frontmost-first order.
 	Focused bool
 	Bounds  Rect
 }

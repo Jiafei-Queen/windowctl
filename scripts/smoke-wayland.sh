@@ -114,13 +114,15 @@ if bad:
 print(f"Move applied within tolerance: bounds={b} (want {expected}, tol {tol}px)")
 PY
 
-# 7. Focus, then verify the target is the topmost window in stacking
-#    order (activating a window raises it on KDE). This deliberately
-#    does NOT use KWin's queryWindowInfo — that call is an interactive
-#    click-to-select picker that hijacks the cursor and returns
-#    UserCancel or whatever window the pointer happens to be over, so
-#    it is useless (and disruptive) in a script. `windows list`
-#    preserves KWin's stacking order, frontmost last.
+# 7. Focus, then verify the target is the frontmost window and the one
+#    stamped Focused (activating a window raises it on KDE). This
+#    deliberately does NOT use KWin's queryWindowInfo — that call is an
+#    interactive click-to-select picker that hijacks the cursor and
+#    returns UserCancel or whatever window the pointer happens to be
+#    over, so it is useless (and disruptive) in a script. `windows list`
+#    is frontmost-first: the adapter walks stackingOrder backwards and
+#    hoists the compositor's active window, so the first entry is the
+#    focused one.
 ./windowctl focus --title "$SMOKE_TITLE" || fail 'focus failed'
 sleep 1
 WCTL_SMOKE_TITLE="$SMOKE_TITLE" python3 - <<'PY'
@@ -134,11 +136,21 @@ if not hits:
     print('smoke window vanished after focus', file=sys.stderr)
     sys.exit(1)
 target = hits[0]['ID']
-topmost = ws[-1]['ID'] if ws else None
-if topmost != target:
-    print(f"focus did not raise the target: topmost is {topmost}, target is {target}", file=sys.stderr)
+frontmost = ws[0]['ID'] if ws else None
+if frontmost != target:
+    print(f"focus did not raise the target: frontmost is {frontmost}, target is {target}", file=sys.stderr)
     sys.exit(1)
-print("Focus applied: target window is topmost in stacking order")
+# The Focused stamp is what the input guard (type/key with a filter)
+# polls for, so it must land on the window that was just focused and on
+# no other — a stamp on the wrong window silently retargets input.
+focused = [w for w in ws if w.get('Focused')]
+if len(focused) != 1:
+    print(f"expected exactly one Focused window, got {len(focused)}", file=sys.stderr)
+    sys.exit(1)
+if focused[0]['ID'] != target:
+    print(f"Focused stamp is on {focused[0]['ID']}, expected the focused target {target}", file=sys.stderr)
+    sys.exit(1)
+print("Focus applied: target window is frontmost and stamped Focused")
 PY
 
 # 8. Monitors: at least one output, primary flagged.

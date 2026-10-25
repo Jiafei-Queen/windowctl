@@ -140,6 +140,37 @@ for (const actor of global.get_window_actors()) {
 }
 ```
 
+**列表序 = 自底向上（stacking order）**：`global.get_window_actors()`
+按 z-order 返回 actor，**最后**一个才是最前的。公共层的 `stampFocused`
+取"落在 focused 屏上的第一个窗口"，所以扩展必须**把焦点窗口提到首位**
+——否则 `Focused` 会盖在最底下那个窗口上（与 KWin 同一个 bug）。
+
+锚点用 `global.display.get_focus_window()`（与 `listMonitors` 里算
+focused 屏用的是同一个），比对用 `get_stable_sequence()` 而非对象
+`===`——GJS 两次调用拿到的 Meta.Window 包装不保证是同一个 JS 对象。
+
+注意：**焦点窗口不一定是最顶层的那个**（别的窗口可以被抬到它上面），
+所以不能靠"最后一个"来代替焦点信号。
+
+### 扩展代码改了必须重新登录（ESM 缓存）
+
+GNOME 45+ 用 `import()` 加载扩展，模块按 **URL** 缓存。同一个扩展
+目录的 URL 不变 → `gnome-extensions disable/enable` 拿到的还是旧模块
+（实测：改了 `extension.js` 再 enable，D-Bus 回复的字段仍是旧的）。
+`org.gnome.Shell.Extensions.ReloadExtension` 在 48.7 **未实现**；
+`gnome-shell --replace` 在 Wayland 上也接不了已有 seat（实测它会另起
+一个 `wayland-1`，变成嵌套会话）。
+
+→ **改扩展代码 = 必须登出登入一次**。这与 `install.go` 注释里说的
+"新装的扩展要登出登入一次才生效"是同一个原因。
+
+顺带一个实测坑：`disable()` 只 `Gio.bus_unown_name()`，**没有**
+`conn.unregister_object()`（`register_object` 返回的 id 也没留）。
+所以同一会话里 disable → enable，新实例的 `register_object` 会因为
+路径已占用而失败，**旧 handler 继续应答**（实测：disable 之后
+`ListWindows` 仍能调通，返回的是 disable 之前的代码）。GNOME 每次
+登录都是新进程，所以平时碰不到。
+
 ### 移动
 
 ```js

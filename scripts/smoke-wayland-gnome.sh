@@ -165,10 +165,23 @@ hit = next((w for w in ws if (w.get('App') or '').lower().startswith('org.gnome.
 if hit is None:
     print('smoke window vanished after focus', file=sys.stderr)
     sys.exit(1)
-if not hit.get('Focused'):
-    print('focus did not mark the window Focused', file=sys.stderr)
+# The Focused stamp is what the input guard (type/key with a filter)
+# polls for, so it must land on the window that was just focused and on
+# no other — a stamp on some other window silently retargets input.
+# (Checking hits[0] alone is not enough: with two calculators open the
+# first match is whichever one happens to sit lowest in the list.)
+focused = [w for w in ws if w.get('Focused')]
+if len(focused) != 1:
+    print(f'expected exactly one Focused window, got {len(focused)}', file=sys.stderr)
     sys.exit(1)
-print("Focus applied: window reports Focused=true")
+if not (focused[0].get('App') or '').lower().startswith('org.gnome.calculator'):
+    print(f"focus did not mark the calculator Focused (the stamp is on {focused[0].get('App')})", file=sys.stderr)
+    sys.exit(1)
+# The window list is frontmost-first, so the focused window heads it.
+if ws[0].get('ID') != focused[0].get('ID'):
+    print('the focused window is not the first entry of the window list', file=sys.stderr)
+    sys.exit(1)
+print("Focus applied: window reports Focused=true and heads the list")
 PY
 
 # --- 7. monitors: at least one output, primary flagged -----------------

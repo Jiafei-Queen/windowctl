@@ -28,11 +28,20 @@ function __wctl_find(uuid) {
 }
 `
 
-// listWindowsBody enumerates normal application windows in z-order
-// (frontmost last, matching stackingOrder semantics). normalWindow
-// filters panels/docks/OSD chrome — the same "application windows
-// only" contract as the darwin adapter's layer-0 filter; type=DIALOG
-// windows are excluded with it, deliberately.
+// listWindowsBody enumerates normal application windows FRONTMOST
+// FIRST, the ordering the public layer's stampFocused relies on (it
+// stamps Focused on the first window lying on the focused monitor).
+// normalWindow filters panels/docks/OSD chrome — the same
+// "application windows only" contract as the darwin adapter's layer-0
+// filter; type=DIALOG windows are excluded with it, deliberately.
+//
+// stackingOrder is bottom-to-top ("后覆盖前"), so the loop walks it
+// backwards. On top of that the active window is hoisted to the
+// front: workspace.activeWindow is the authoritative focus signal, and
+// it is NOT necessarily the topmost window (verified on KWin 6.7.4: a
+// window was active while another one sat above it in the stacking
+// order), so plain reverse order still stamped Focused on the wrong
+// window.
 //
 // Desktop-scope narrowing is driven by two boolean vars the Go side
 // injects ahead of this body (see listWindowsPrologue). The filter
@@ -45,8 +54,9 @@ const listWindowsBody = findWindowBody + `
 function __wctl_main() {
     var cur = workspace.currentDesktop;
     var out = [];
-    for (var i = 0; i < workspace.stackingOrder.length; i++) {
-        var w = workspace.stackingOrder[i];
+    var so = workspace.stackingOrder;
+    for (var i = so.length - 1; i >= 0; i--) {
+        var w = so[i];
         if (!w.normalWindow || w.deleted || w.outline) { continue; }
         if (__wctl_current_desktop_only && !w.onAllDesktops) {
             var here = false;
@@ -68,6 +78,16 @@ function __wctl_main() {
             width: Math.round(g.width),
             height: Math.round(g.height)
         });
+    }
+    var active = workspace.activeWindow;
+    if (active) {
+        var activeId = String(active.internalId);
+        for (var k = 0; k < out.length; k++) {
+            if (out[k].id === activeId) {
+                out.unshift(out.splice(k, 1)[0]);
+                break;
+            }
+        }
     }
     __wctl_report({ ok: true, windows: out });
 }

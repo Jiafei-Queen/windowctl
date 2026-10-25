@@ -102,6 +102,28 @@ func TestExtensionJSMethodNames(t *testing.T) {
 	}
 }
 
+// TestExtensionJSListWindowsIsFrontmostFirst pins the ordering the
+// public layer's Focused stamp depends on (it marks the first window
+// lying on the focused monitor). global.get_window_actors() is
+// stacking order — bottom-to-top — so the compositor's focus window
+// must be hoisted to the front of the list.
+func TestExtensionJSListWindowsIsFrontmostFirst(t *testing.T) {
+	raw, err := extensionFS.ReadFile("extension/extension.js")
+	if err != nil {
+		t.Fatalf("read embedded extension.js: %v", err)
+	}
+	src := string(raw)
+	for _, want := range []string{
+		"global.get_window_actors()",
+		"global.display.get_focus_window()",
+		"wins.unshift(wins.splice(i, 1)[0]);",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("extension.js missing %q (the window list must be frontmost-first)", want)
+		}
+	}
+}
+
 // TestExtensionJSSyntaxValid runs node's syntax checker when node is
 // available — the JS is embedded into every linux build and a syntax
 // error would only surface as a broken extension at runtime. Skipped

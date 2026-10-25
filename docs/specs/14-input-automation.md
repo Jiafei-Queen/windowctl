@@ -29,7 +29,7 @@
 
 Bare `type`/`key` send to whatever holds the keyboard **at delivery time**. During focus transitions (right after `launch`, `focus`, or a window-creating chord like cmd+n) that is frequently the *previous* window — silent input corruption of an unrelated document.
 
-With `--title`/`--app`, `type`/`key` route through `TypeInto`/`PressKeyInto`: Focus the match, then poll the window list until the matched window reports `Focused`, then inject. If focus hasn't landed within 2s the command fails with "input NOT sent". On platforms whose adapter cannot flag a focused monitor (linux today) verification degrades to trusting Focus().
+With `--title`/`--app`, `type`/`key` route through `TypeInto`/`PressKeyInto`: Focus the match, then poll the window list until the matched window reports `Focused`, then inject. If focus hasn't landed within 2s the command fails with "input NOT sent". On platforms whose adapter cannot flag a focused monitor (X11 today) verification degrades to trusting Focus(). The Wayland backends do flag it, so the guard is enforced there — which is why their window lists must be frontmost-first, or the stamp lands on a window that is not the one just focused.
 
 #### Scenario: focus never lands
 

@@ -54,6 +54,20 @@
 - **AND** a window that vanished between list and act produces
   `core.ErrNoMatch`, matching the darwin contract
 
+### Scenario: The window list is frontmost-first
+
+- **WHEN** `windows list` runs on KDE Plasma
+- **THEN** the injected script walks `workspace.stackingOrder`
+  **backwards** — that array is bottom-to-top ("后覆盖前") — so the
+  list comes out frontmost-first, the ordering the public layer's
+  `Focused` stamp depends on (it marks the first window lying on the
+  focused monitor)
+- **AND** the active window (`workspace.activeWindow`) is hoisted to
+  the front of the list, because the active window is **not**
+  necessarily the topmost one (verified on KWin 6.7.4: a window was
+  active while another sat above it in the stacking order) — plain
+  reverse order still stamped `Focused` on the wrong window
+
 ### Scenario: Move uses whole-literal geometry assignment
 
 - **WHEN** the backend moves a window

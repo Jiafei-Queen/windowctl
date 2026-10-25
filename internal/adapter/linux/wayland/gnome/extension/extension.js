@@ -104,10 +104,30 @@ function listWindows() {
     // "application windows only" contract as KWin's normalWindow.
     // currentWorkspaceIndex is the active workspace the Go side
     // compares each window's workspaceIndex against.
-    const windows = global.get_window_actors()
+    //
+    // The list is frontmost-first: global.get_window_actors() returns
+    // the actors in stacking order (bottom-to-top), but the public
+    // layer stamps Window.Focused on the FIRST window lying on the
+    // focused monitor. The compositor's focus window is hoisted to the
+    // front so the stamp lands on the window that actually owns the
+    // keyboard — it is not necessarily the topmost one. The anchor is
+    // display.get_focus_window(), the same one listMonitors uses for
+    // the focused monitor, so the two agree.
+    const wins = global.get_window_actors()
         .map(a => a.meta_window)
-        .filter(w => w.get_window_type() === Meta.WindowType.NORMAL)
-        .map(windowReply);
+        .filter(w => w.get_window_type() === Meta.WindowType.NORMAL);
+    const focus = global.display.get_focus_window();
+    if (focus) {
+        // Compare stable sequences, not object identity: GJS hands out
+        // Meta.Window wrappers that are not guaranteed to be the same
+        // JS object across two calls.
+        const focusSeq = String(focus.get_stable_sequence());
+        const i = wins.findIndex(w => String(w.get_stable_sequence()) === focusSeq);
+        if (i > 0) {
+            wins.unshift(wins.splice(i, 1)[0]);
+        }
+    }
+    const windows = wins.map(windowReply);
     return {
         ok: true,
         currentWorkspaceIndex: global.workspace_manager.get_active_workspace().index(),

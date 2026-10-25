@@ -96,7 +96,7 @@ JSON shape (per window):
 ```
 
 - **`Monitor`** is the **1-indexed** ID of the display containing the window's centroid (matches `monitors list`). `0` means the window is off every display (off-screen / hidden).
-- **`Focused`** is `true` for the frontmost window on the focused monitor — useful for "operate on whatever I'm looking at right now" scripts.
+- **`Focused`** is `true` for the OS's active window — the one that owns the keyboard (it sits on the focused monitor) — useful for "operate on whatever I'm looking at right now" scripts.
 - **`Bounds`** uses `Width`/`Height` (not `W`/`H`) — same shape as `monitors list`.
 
 Only real application windows are listed. macOS menu-bar widgets, status items, the Dock, Spotlight, Control Center, AltTab, and Window Server menubars (everything on a non-zero `kCGWindowLayer`) are filtered out so the list reflects what you can actually move and focus.

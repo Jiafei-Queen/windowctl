@@ -103,7 +103,7 @@ func TestMoveBodyInjection(t *testing.T) {
 // the desktop-scope narrowing driven by the injected switches.
 func TestListWindowsBodyShape(t *testing.T) {
 	for _, want := range []string{
-		"workspace.stackingOrder.length",
+		"var so = workspace.stackingOrder;",
 		"!w.normalWindow || w.deleted || w.outline",
 		"id: String(w.internalId)",
 		"title: w.caption",
@@ -116,6 +116,38 @@ func TestListWindowsBodyShape(t *testing.T) {
 	} {
 		if !strings.Contains(listWindowsBody, want) {
 			t.Errorf("listWindowsBody missing %q", want)
+		}
+	}
+}
+
+// TestListWindowsBodyIsFrontmostFirst pins the ordering the public
+// layer's stampFocused depends on (it marks the first window lying on
+// the focused monitor). stackingOrder is bottom-to-top, so the loop
+// must walk it backwards — and the active window must be hoisted to
+// the front, because KWin's active window is not necessarily the
+// topmost one (verified: a window was active while another sat above
+// it in the stacking order).
+func TestListWindowsBodyIsFrontmostFirst(t *testing.T) {
+	for _, want := range []string{
+		"for (var i = so.length - 1; i >= 0; i--)",
+		"var active = workspace.activeWindow;",
+		"out.unshift(out.splice(k, 1)[0]);",
+	} {
+		if !strings.Contains(listWindowsBody, want) {
+			t.Errorf("listWindowsBody missing %q", want)
+		}
+	}
+	// The ascending walk is the bug this replaced: it made the public
+	// layer stamp Focused on the bottom-most window. Only the list
+	// body is checked — findWindowBody (prepended to it) legitimately
+	// walks stackingOrder forward to look a window up by ID.
+	listBody := strings.TrimPrefix(listWindowsBody, findWindowBody)
+	for _, bad := range []string{
+		"i = 0; i < so.length",
+		"i = 0; i < workspace.stackingOrder.length",
+	} {
+		if strings.Contains(listBody, bad) {
+			t.Errorf("listWindowsBody still walks stackingOrder bottom-to-top (%q)", bad)
 		}
 	}
 }
